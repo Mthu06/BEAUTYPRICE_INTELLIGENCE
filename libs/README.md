@@ -12,7 +12,21 @@
 | Chart.js | 4.4.1 (MIT) | Đã lưu cục bộ tại `source-code/frontend/vendor/chart.umd.min.js`, không cần mạng |
 | Trình duyệt | Chrome / Edge / Firefox bản mới | |
 
-`run.bat` / `run.sh` tự tạo môi trường ảo `source-code/backend/.venv` và cài các thư viện trên.
+`cai-dat.bat` / `cai-dat.sh` (máy mới) và `run.bat` / `run.sh` tự tạo môi trường ảo
+`source-code/backend/.venv` rồi cài các thư viện trên.
+
+### Cài được khi không có mạng
+
+Thư mục `libs/wheels/` chứa sẵn gói cài của Flask và các thư viện phụ thuộc (khoảng 730 KB):
+
+| Gói | Vai trò |
+|---|---|
+| `flask`, `werkzeug`, `jinja2`, `click`, `itsdangerous`, `blinker`, `markupsafe` | Flask và các thư viện phụ thuộc |
+| `flask_cors` | Cho phép mở frontend bằng server khác |
+
+Script cài đặt thử `pip install --no-index --find-links libs/wheels` trước; chỉ khi thiếu gói
+phù hợp mới tải từ mạng. `markupsafe` có bản riêng cho Python 3.9 đến 3.14 trên Windows 64-bit.
+Hệ điều hành khác sẽ tự tải từ mạng.
 
 ## Thu thập dữ liệu (`source-code/crawler/crawl.py`)
 

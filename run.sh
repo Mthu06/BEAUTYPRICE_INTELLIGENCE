@@ -11,13 +11,22 @@ if [ -z "$PY" ]; then
     exit 1
 fi
 
-if [ ! -x .venv/bin/python ]; then
-    echo "[1/3] Tạo môi trường ảo .venv ..."
+if ! .venv/bin/python -c "pass" >/dev/null 2>&1; then
+    if [ -d .venv ]; then
+        echo "[1/3] Môi trường ảo .venv không dùng được (Python gốc đã bị gỡ hoặc đổi chỗ) - đang tạo lại ..."
+        rm -rf .venv
+    else
+        echo "[1/3] Tạo môi trường ảo .venv ..."
+    fi
     "$PY" -m venv .venv
 fi
 
 echo "[2/3] Cài thư viện (Flask, flask-cors) ..."
-.venv/bin/python -m pip install --disable-pip-version-check -q -r requirements.txt
+if ! .venv/bin/python -c "import flask, flask_cors" >/dev/null 2>&1; then
+    # Ưu tiên cài từ libs/wheels (không cần mạng), không được thì tải từ mạng
+    .venv/bin/python -m pip install --disable-pip-version-check -q --no-index --find-links ../../libs/wheels -r requirements.txt 2>/dev/null \
+        || .venv/bin/python -m pip install --disable-pip-version-check -q -r requirements.txt
+fi
 
 URL="http://127.0.0.1:${BEAUTY_PORT:-5000}/"
 echo "[3/3] Khởi động backend tại $URL (Ctrl+C để dừng)"

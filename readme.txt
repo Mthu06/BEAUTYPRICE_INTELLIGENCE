@@ -43,9 +43,13 @@ Cấu trúc thư mục
     demo/                      : ảnh chụp từng bước, video, tệp xuất, phụ đề video
 - refs/          : tài liệu tham khảo, kết quả mô hình bản trước (lưu trữ)
 - libs/          : danh sách phần mềm, thư viện sử dụng
+    wheels/      : gói cài sẵn của Flask (cài được khi không có mạng)
 --------------------------------------------
 Cách chạy
-- Windows: nháy đúp run.bat     - macOS/Linux: ./run.sh
+- MÁY MỚI chưa cài gì: nháy đúp cai-dat.bat  (macOS/Linux: ./cai-dat.sh)
+  Script tự kiểm tra Python (chưa có thì hỏi trước khi cài), tạo môi trường ảo,
+  cài Flask từ libs/wheels (không cần mạng) rồi mở website.
+- Đã cài rồi: nháy đúp run.bat   - macOS/Linux: ./run.sh
 - Mở http://127.0.0.1:5000/   Tài khoản: admin / Admin@123 (quản trị), user / User@123 (chỉ xem)
 - Tắt server:         stop.bat    /  ./stop.sh
 - Khởi động lại:      restart.bat /  ./restart.sh

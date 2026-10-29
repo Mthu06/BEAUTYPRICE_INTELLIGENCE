@@ -10,7 +10,8 @@ Chỉ cần cài **Python 3.9+**. Không cần MySQL hay bất kỳ server CSDL 
 
 | Hệ điều hành | Lệnh |
 |---|---|
-| Windows | Nháy đúp `run.bat` |
+| **Máy mới, chưa cài gì** | Windows: nháy đúp `cai-dat.bat` · macOS/Linux: `./cai-dat.sh` (tự kiểm tra Python, tạo môi trường ảo, cài thư viện, mở web) |
+| Windows (đã cài rồi) | Nháy đúp `run.bat` |
 | macOS / Linux | `chmod +x run.sh && ./run.sh` |
 | Tắt server | `stop.bat` / `./stop.sh` (chỉ tắt tiến trình Python đang chạy ở cổng của dự án) |
 | Khởi động lại (sau khi cập nhật code) | `restart.bat` / `./restart.sh` |
@@ -89,6 +90,7 @@ Lưu ý: dựng lại CSDL sẽ xóa các thay đổi admin đã nhập qua webs
 
 ```
 ├─ readme.txt                 thông tin đề tài & nhóm (theo mẫu nộp bài)
+├─ cai-dat.bat / cai-dat.sh   cài đặt trên máy mới (Python + thư viện)
 ├─ run.bat / run.sh           chạy 1 lần bấm (stop: tắt · restart: khởi động lại · reset: khôi phục dữ liệu gốc)
 ├─ source-code/
 │  ├─ backend/                app.py (Flask + SQLite), requirements.txt
@@ -143,6 +145,8 @@ Tài liệu trong `reports/`:
 |---|---|
 | "Không kết nối được backend" | Chạy `run.bat` / `run.sh`, mở bằng `http://127.0.0.1:5000/`, **không** mở file HTML trực tiếp |
 | Trang báo "Máy chủ đang chạy chưa có chức năng này" | Server đang chạy bản code cũ: chạy `restart.bat` / `./restart.sh` rồi tải lại trang |
+| `did not find executable at ...python.exe` khi chạy `run.bat` | Thư mục `.venv` trỏ tới bản Python đã bị gỡ. Từ bản này `run.bat` tự nhận ra và dựng lại `.venv`; nếu vẫn lỗi, xóa `source-code/backend/.venv` rồi chạy `cai-dat.bat` |
+| Máy không có mạng | `cai-dat.bat` / `run.bat` cài Flask từ `libs/wheels` nên vẫn chạy được; chỉ phần huấn luyện lại mô hình mới cần mạng |
 | Dữ liệu bị sửa hỏng, muốn về như ban đầu | `reset.bat` / `./reset.sh`. Script lấy lại CSDL gốc **từ git** (có sẵn kết quả mô hình, không cần cài thêm gì); không có git thì dựng lại từ `dataset/raw` |
 | Cài thư viện học máy báo lỗi `Preparing metadata ... did not run successfully` / cần `vswhere.exe` | Python đang dùng quá mới nên không có bản dựng sẵn, pip phải biên dịch. Dùng `reset.bat` để lấy CSDL gốc từ git (đã có kết quả mô hình), hoặc cài Python 3.11/3.12 rồi xóa `source-code/backend/.venv` và chạy lại `run.bat` |
 | Bị đẩy về trang đăng nhập | Server vừa khởi động lại nên phiên cũ hết hiệu lực. Đăng nhập lại |
