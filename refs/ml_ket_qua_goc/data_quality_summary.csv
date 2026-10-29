@@ -1,0 +1,12 @@
+check,count
+source_snapshot_rows,6350
+valid_positive_price_rows,6350
+invalid_or_missing_price_rows,0
+invalid_rating_outside_0_5,0
+rating_zero_converted_to_missing_assumption,864
+negative_review_count,0
+discount_outside_0_100,0
+ambiguous_latest_price_groups_excluded,0
+model_listing_rows,5657
+unique_product_ids_in_model,5657
+unique_retailer_ids_in_model,5

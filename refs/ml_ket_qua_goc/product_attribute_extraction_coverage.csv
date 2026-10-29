@@ -1,0 +1,6 @@
+feature,non_missing_rows,missing_rows,coverage_percent,unique_values
+volume_ml,3896,1761,68.87,123
+weight_g,1311,4346,23.17,103
+pack_count,5333,324,94.27,11
+is_combo,5657,0,100.0,2
+product_variant,5657,0,100.0,14

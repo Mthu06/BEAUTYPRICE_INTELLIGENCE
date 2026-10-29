@@ -22,3 +22,7 @@ source-code/backend/.venv/
 dataset/backups/
 
 node_modules/
+
+# Tham khảo: bỏ bản trùng và mô hình cũ (mô hình đang dùng ở dataset/models/)
+refs/_luu_tru/
+refs/ml_ket_qua_goc/*.joblib

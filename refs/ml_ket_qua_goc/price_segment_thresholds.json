@@ -1,0 +1,6 @@
+{
+  "q1_vnd": 169000.0,
+  "q2_vnd": 340000.0,
+  "definition": "low <= q1; medium <= q2; high > q2",
+  "quantiles_from": "training split only"
+}

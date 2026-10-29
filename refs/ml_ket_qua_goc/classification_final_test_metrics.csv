@@ -1,0 +1,2 @@
+model,test_accuracy,test_precision_macro,test_recall_macro,test_f1_macro
+Extra Trees,0.7385159010600707,0.7336844626565618,0.7368333748524482,0.7339938147942616

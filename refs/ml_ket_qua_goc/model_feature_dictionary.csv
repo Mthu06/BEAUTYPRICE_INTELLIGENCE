@@ -1,0 +1,16 @@
+feature,dtype,missing_percent,role,handling
+brand,object,0.0,input feature,categorical: most-frequent imputation + one-hot encoding
+product_type,object,0.0,input feature,categorical: most-frequent imputation + one-hot encoding
+primary_category,object,10.06,input feature,categorical: most-frequent imputation + one-hot encoding
+retailer_id,object,0.0,input feature,categorical: most-frequent imputation + one-hot encoding
+product_variant,object,0.0,input feature,categorical: most-frequent imputation + one-hot encoding
+category_count,int64,0.0,input feature,numeric: median imputation + missing indicator + scaling
+rating_model,float64,65.48,input feature,numeric: median imputation + missing indicator + scaling
+review_count_log,float64,33.09,input feature,numeric: median imputation + missing indicator + scaling
+volume_ml,float64,31.13,input feature,numeric: median imputation + missing indicator + scaling
+weight_g,float64,76.83,input feature,numeric: median imputation + missing indicator + scaling
+pack_count,float64,5.73,input feature,numeric: median imputation + missing indicator + scaling
+is_combo,int8,0.0,input feature,numeric: median imputation + missing indicator + scaling
+log_volume_ml,float64,31.13,input feature,numeric: median imputation + missing indicator + scaling
+log_weight_g,float64,76.83,input feature,numeric: median imputation + missing indicator + scaling
+log_pack_count,float64,5.73,input feature,numeric: median imputation + missing indicator + scaling
