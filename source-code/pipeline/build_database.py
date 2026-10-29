@@ -8,7 +8,9 @@ Chỉ dùng thư viện chuẩn của Python. Mỗi bước làm sạch ghi số
 """
 import argparse
 import csv
+import hashlib
 import os
+import secrets
 import re
 import sqlite3
 import sys
@@ -371,7 +373,8 @@ class Loader:
 
 
 def import_crawl_runs(conn):
-    """Nạp lại các lần thu thập bằng crawler (dataset/crawl/crawl_*/) để CSDL dựng lại không mất lịch sử giá mới."""
+    """Nạp lại các lần thu thập bằng crawler (dataset/crawl/crawl_*/) - chỉ khi chạy với --with-crawl.
+    Mặc định CSDL chỉ gồm dữ liệu gốc dataset/raw (5.657 sản phẩm), khớp EDA/KPI."""
     crawl_dir = ROOT / "dataset" / "crawl"
     runs = sorted(p for p in crawl_dir.glob("crawl_*") if (p / "snapshots.csv").exists()) if crawl_dir.exists() else []
     if not runs:
@@ -379,13 +382,30 @@ def import_crawl_runs(conn):
     sys.path.insert(0, str(ROOT / "source-code" / "crawler"))
     import crawl
     for run in runs:
-        records, logs, run_id, _ = crawl.load_run(run)
+        records, logs, run_id, _, reviews = crawl.load_run(run)
         records, _ = crawl.clean_records(records)  # áp quy tắc làm sạch hiện hành cho dữ liệu đã lưu
-        new_products, new_snapshots = crawl.import_records(conn, records, logs, run_id, RUN_AT)
-        print(f"  - Nạp lần thu thập {run_id:<36} +{new_snapshots} snapshot, +{new_products} sản phẩm mới")
+        new_products, new_snapshots = crawl.import_records(conn, records, logs, run_id, RUN_AT, allow_new_products=True)
+        added, named = crawl.import_reviews(conn, crawl.clean_reviews(reviews), run_id, RUN_AT, allow_new_reviews=True) if reviews else (0, 0)
+        print(f"  - Nạp lần thu thập {run_id:<36} +{new_snapshots} snapshot, +{new_products} sản phẩm mới"
+              + (f", +{added} review, bổ sung tên {named} review" if reviews else ""))
 
 
-def build(db_path):
+def password_hash(password, iterations=600000):
+    """Băm PBKDF2-SHA256 cùng định dạng với werkzeug (backend kiểm tra bằng check_password_hash)."""
+    salt = secrets.token_hex(8)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), iterations).hex()
+    return f"pbkdf2:sha256:{iterations}${salt}${digest}"
+
+
+def seed_users(conn):
+    """Tạo sẵn tài khoản demo để lần chạy đầu website không phải ghi vào CSDL."""
+    conn.executemany("INSERT OR IGNORE INTO users(username, password_hash, role) VALUES (?,?,?)", [
+        ("admin", password_hash(os.environ.get("BEAUTY_ADMIN_PASSWORD", "Admin@123")), "Admin"),
+        ("user", password_hash(os.environ.get("BEAUTY_USER_PASSWORD", "User@123")), "User"),
+    ])
+
+
+def build(db_path, with_crawl=False):
     tmp = db_path.with_suffix(".building")
     if tmp.exists():
         tmp.unlink()
@@ -406,7 +426,9 @@ def build(db_path):
     loader.reviews(retailers)
     loader.collection_logs(retailers)
     loader.matching(product_ids)
-    import_crawl_runs(conn)
+    if with_crawl:
+        import_crawl_runs(conn)
+    seed_users(conn)
     problems = conn.execute("PRAGMA foreign_key_check").fetchall()
     if problems:
         sys.exit(f"Lỗi khóa ngoại: {problems[:5]}")
@@ -418,6 +440,8 @@ def build(db_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--force", action="store_true", help="dựng lại CSDL (bản cũ đổi tên thành .bak)")
+    parser.add_argument("--with-crawl", action="store_true",
+                        help="nạp thêm các lần thu thập trong dataset/crawl (mặc định chỉ dữ liệu gốc dataset/raw)")
     args = parser.parse_args()
     if DB_PATH.exists() and not args.force:
         print(f"CSDL đã tồn tại: {DB_PATH} (dùng --force để dựng lại)")
@@ -428,7 +452,7 @@ def main():
         os.replace(DB_PATH, backup)
         print(f"Đã sao lưu CSDL cũ: {backup.name}")
     print("Đang làm sạch và nạp dữ liệu...")
-    build(DB_PATH)
+    build(DB_PATH, args.with_crawl)
     conn = sqlite3.connect(DB_PATH)
     for table in ("retailers", "categories", "products", "product_categories", "price_snapshots", "reviews",
                   "collection_logs", "product_matching"):

@@ -50,9 +50,11 @@ def price(value):
     return number if number > 0 else None
 
 
-def load_clean_data():
-    """Dữ liệu sạch dùng để tính độc lập: sản phẩm, snapshot giá, review, danh mục, matching, nhật ký."""
-    crawl_runs = sorted(p for p in CRAWL.glob("crawl_*") if (p / "snapshots.csv").exists()) if CRAWL.exists() else []
+def load_clean_data(imported_runs):
+    """Dữ liệu sạch dùng để tính độc lập: sản phẩm, snapshot giá, review, danh mục, matching, nhật ký.
+    Chỉ tính các lần crawler mà CSDL đã nạp (ghi trong etl_log); mặc định CSDL chỉ có dữ liệu gốc."""
+    crawl_runs = sorted(CRAWL / r for r in imported_runs if (CRAWL / r / "snapshots.csv").exists())
+    # đợt nạp không thêm sản phẩm mới (mặc định) -> bỏ qua snapshot của sản phẩm chưa có
     products = {}                              # product_id -> retailer_id
     for r in rows(first("products*.csv")):
         if r["product_id"].strip() and r["product_name"].strip():
@@ -72,10 +74,13 @@ def load_clean_data():
     for run in crawl_runs:
         for r in rows(run / "snapshots.csv"):
             pid = r["product_id"]
+            if pid not in products and not imported_runs[run.name]:
+                continue
             products.setdefault(pid, r["retailer_id"])
             snapshots.append((pid, r["collected_at"], price(r["current_price_vnd"]), price(r["listed_price_vnd"])))
             crawl_snapshots += 1
-            crawl_pairs |= {(pid, c) for c in r["categories"].split(";") if c in VALID_CATEGORIES}
+            if imported_runs[run.name]:  # nhãn danh mục chỉ được nạp ở đợt cho phép thêm sản phẩm mới
+                crawl_pairs |= {(pid, c) for c in r["categories"].split(";") if c in VALID_CATEGORIES}
         if (run / "collection_log.csv").exists():
             crawl_logs += len(rows(run / "collection_log.csv"))
 
@@ -96,6 +101,18 @@ def load_clean_data():
             keys.add(key)
             bought = r.get("is_bought", "").strip().lower()
             reviews.append((source, round(rating, 1), 1 if bought in ("true", "1", "yes") else 0 if bought in ("false", "0", "no") else None))
+
+    for run in crawl_runs:  # review thu thập thêm bằng crawler (Hasaki, kèm tên rút gọn)
+        if (run / "reviews.csv").exists():
+            for r in rows(run / "reviews.csv"):
+                key = (r["source"], r["source_product_id"], r["review_id"])
+                try:
+                    rating = round(float(r["rating"]), 1)
+                except ValueError:
+                    continue
+                if all(key) and 1 <= rating <= 5 and key not in keys:
+                    keys.add(key)
+                    reviews.append((r["source"], rating, int(float(r["is_bought"])) if r["is_bought"] not in ("", None) else None))
 
     matching = sum(1 for r in rows(first("product_matching.csv")) if r["match_id"].strip() and r["product_id"].strip() in raw_product_ids)
     return {
@@ -191,7 +208,9 @@ def main():
         sys.exit(f"Chưa có CSDL {DB_PATH}. Chạy build_database.py trước.")
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    data = load_clean_data()
+    imported = {m[1]: (new or 0) > 0 for step, new in conn.execute("SELECT step, rows_affected FROM etl_log")
+                if (m := re.match(r"Nạp lần thu thập (crawl_\S+) \(crawler\)", step))}
+    data = load_clean_data(imported)
     lines, ok_all = [], True
 
     print("1. Số bản ghi sau import (CSV sạch -> CSDL)")

@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS reviews (
     is_bought           INTEGER CHECK (is_bought IS NULL OR is_bought IN (0, 1)),
     has_images          INTEGER CHECK (has_images IS NULL OR has_images IN (0, 1)),
     source_url          TEXT,
+    reviewer_name       TEXT,                       -- tên hiển thị đã rút gọn (VD "Nguyễn V. A."), không lưu id tài khoản
     UNIQUE (source, source_product_id, review_id)
 );
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);
@@ -123,6 +124,12 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash   TEXT NOT NULL,
     role            TEXT NOT NULL CHECK (role IN ('Admin', 'User')),
     created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'))
+);
+
+-- ---------------------------------------------------------------- cấu hình ứng dụng (lịch thu thập tự động...)
+CREATE TABLE IF NOT EXISTS app_settings (
+    key             TEXT PRIMARY KEY,
+    value           TEXT NOT NULL               -- JSON
 );
 
 -- ---------------------------------------------------------------- nhật ký làm sạch dữ liệu

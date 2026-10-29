@@ -1,7 +1,7 @@
 # Kết quả kiểm tra CSDL (Giai đoạn 5)
 
-- **Chạy lúc:** 29/10/2026 13:40. Script: `source-code/pipeline/verify_database.py`; truy vấn: `source-code/pipeline/queries.sql`.
-- **Nguồn đối chiếu:** CSV trong `dataset/raw/` và các lần thu thập crawl_20261029T120321.
+- **Chạy lúc:** 29/10/2026 14:36. Script: `source-code/pipeline/verify_database.py`; truy vấn: `source-code/pipeline/queries.sql`.
+- **Nguồn đối chiếu:** CSV trong `dataset/raw/`.
 - **Cách đối chiếu:** phép tính độc lập bằng Python thuần đọc thẳng CSV, không dùng SQL.
 - **Kết luận: ✅ TẤT CẢ PASS**
 
@@ -10,12 +10,12 @@
 | Bảng | Đếm lại từ CSV | Trong CSDL | Kết quả |
 |---|---:|---:|:---:|
 | `retailers` | 5 | 5 | ✅ PASS |
-| `products` | 6.413 | 6.413 | ✅ PASS |
-| `product_categories` | 7.133 | 7.133 | ✅ PASS |
-| `price_snapshots` | 10.424 | 10.424 | ✅ PASS |
+| `products` | 5.657 | 5.657 | ✅ PASS |
+| `product_categories` | 6.350 | 6.350 | ✅ PASS |
+| `price_snapshots` | 6.350 | 6.350 | ✅ PASS |
 | `reviews` | 6.673 | 6.673 | ✅ PASS |
 | `product_matching` | 130 | 130 | ✅ PASS |
-| `collection_logs` | 57 | 57 | ✅ PASS |
+| `collection_logs` | 27 | 27 | ✅ PASS |
 
 `PRAGMA integrity_check` = **ok**; lỗi khóa ngoại (`PRAGMA foreign_key_check`) = **0**.
 
@@ -29,11 +29,11 @@ Quy tắc đếm lại khớp với quy tắc import:
 
 | Truy vấn | Loại | Số dòng | Kết quả |
 |---|---|---:|:---:|
-| `Q1_find_filter_projection` | find + filter + projection + sort | 33 | ✅ PASS |
+| `Q1_find_filter_projection` | find + filter + projection + sort | 26 | ✅ PASS |
 | `Q2_sort_limit` | sort + limit | 10 | ✅ PASS |
 | `Q3_aggregate_by_retailer` | aggregation ($group) | 5 | ✅ PASS |
 | `Q4_filter_count_discount` | filter + aggregation | 5 | ✅ PASS |
-| `Q5_aggregate_snapshots_by_day` | aggregation trên lịch sử giá | 12 | ✅ PASS |
+| `Q5_aggregate_snapshots_by_day` | aggregation trên lịch sử giá | 8 | ✅ PASS |
 | `Q6_aggregate_reviews` | aggregation trên review | 2 | ✅ PASS |
 | `Q7_lookup_reviews_per_product` | lookup (join) + sort + limit | 5 | ⓘ Chỉ minh họa |
 
@@ -45,9 +45,9 @@ Quy tắc đếm lại khớp với quy tắc import:
 |---|---|---|---|
 | prod_e4ae95b6bf623cc9 | OBAGI MEDICAL Nu-Gen Cellular Renewal Serum 30ML | OBAGI | 3.160.000 |
 | prod_31a06404843b6132 | Serum Dưỡng Sáng & Đều Màu Da Vitamin C Obagi Professional-C 20% 30ml | OBAGI | 2.950.000 |
-| prod_12fa925e95519e74 | Combo 1 PLC TAY TBC 2% BHA 118ML & 1 PLC SEKHITLCL NIACINAMIDE20% 20ML | PAULA'S CHOICE | 2.643.998 |
-| prod_b47246ff918e417b | Combo 1 Nước Uống Làm Đẹp Da Từ Nhau Thai Itoh Naris EX Placenta 50ml  | Unknown | 2.092.995 |
+| prod_b47246ff918e417b | Combo 1 Nước Uống Làm Đẹp Da Từ Nhau Thai Itoh Naris EX Placenta 50ml  | Unknown | 2.686.000 |
 | prod_1821cdfe158fc6eb | TINH CHẤT KHỞI SINH PAULA’S CHOICE NAD+ CELLULARYOUTH LONGEVITY SERUM  | PAULA'S CHOICE | 1.979.000 |
+| prod_5a1af856b4231791 | TINH CHẤT EUCERIN GIÚP GIẢM DẤU HIỆU LÃO HÓA HYALURON-FILLER EPICELLIN | EUCERIN | 1.758.000 |
 
 ### Q2_sort_limit
 
@@ -63,10 +63,10 @@ Quy tắc đếm lại khớp với quy tắc import:
 
 | retailer_id | so_sp | gia_min | gia_max | gia_tb |
 |---|---|---|---|---|
-| cocolux | 743 | 5.000 | 3.160.000 | 386.426,78 |
-| guardian | 1.095 | 31.000 | 3.160.000 | 328.981,27 |
-| hasaki | 1.874 | 9.000 | 2.625.000 | 291.560,83 |
-| the_gioi_skin_food | 1.018 | 24.000 | 1.548.000 | 291.750,49 |
+| cocolux | 724 | 5.000 | 3.160.000 | 385.823,34 |
+| guardian | 984 | 31.000 | 3.160.000 | 321.794,21 |
+| hasaki | 1.767 | 9.000 | 2.625.000 | 287.215,34 |
+| the_gioi_skin_food | 499 | 24.000 | 1.409.000 | 279.282,57 |
 | watsons | 1.683 | 17.000 | 2.963.000 | 313.357,69 |
 
 ### Q4_filter_count_discount
@@ -74,9 +74,9 @@ Quy tắc đếm lại khớp với quy tắc import:
 | retailer_id | so_sp |
 |---|---|
 | cocolux | 18 |
-| guardian | 99 |
-| hasaki | 1.071 |
-| the_gioi_skin_food | 258 |
+| guardian | 114 |
+| hasaki | 1.054 |
+| the_gioi_skin_food | 120 |
 | watsons | 384 |
 
 ### Q5_aggregate_snapshots_by_day
