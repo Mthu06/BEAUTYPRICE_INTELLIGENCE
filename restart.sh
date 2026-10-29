@@ -1,6 +1,3 @@
 #!/usr/bin/env bash
-# Tắt server đang chạy (nếu có) rồi khởi động lại bằng run.sh - dùng sau khi cập nhật code.
-DIR="$(dirname "$0")"
-bash "$DIR/stop.sh"
-sleep 1
-exec bash "$DIR/run.sh"
+# Khởi động lại server (dùng sau khi cập nhật code). run.sh tự tắt server cũ trước khi chạy.
+exec bash "$(dirname "$0")/run.sh"

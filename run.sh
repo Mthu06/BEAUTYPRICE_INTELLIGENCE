@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Chạy BeautyPrice Intelligence trên macOS/Linux: tự tạo môi trường ảo, cài thư viện, mở trình duyệt.
 set -e
+# Tắt server cũ (nếu còn chạy) trước, để luôn chạy đúng bản code mới nhất
+bash "$(dirname "$0")/stop.sh" || true
 cd "$(dirname "$0")/source-code/backend"
 
 PY=$(command -v python3 || command -v python || true)

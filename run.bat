@@ -1,6 +1,8 @@
 @echo off
 REM Chay BeautyPrice Intelligence tren Windows: tu tao moi truong ao, cai thu vien, mo trinh duyet.
 chcp 65001 >nul
+REM Tat server cu (neu con chay) truoc: Windows cho phep 2 server cung mo 1 cong -> trang luc goi ban moi, luc goi ban cu.
+call "%~dp0stop.bat"
 cd /d "%~dp0source-code\backend"
 
 set "PY="
@@ -20,7 +22,7 @@ if defined BEAUTY_PORT (set "BEAUTY_PORT_OR_DEFAULT=%BEAUTY_PORT%") else (set "B
 echo [3/3] Khoi dong backend tai http://127.0.0.1:%BEAUTY_PORT_OR_DEFAULT%/  (Ctrl+C de dung)
 echo       Neu chua co dataset\beautyprice.db, backend se tu dung CSDL tu dataset\raw.
 if not "%BEAUTY_NO_BROWSER%"=="1" start "" cmd /c "ping -n 4 127.0.0.1 >nul & start http://127.0.0.1:%BEAUTY_PORT_OR_DEFAULT%/"
-".venv\Scripts\python.exe" app.py
+".venv\Scripts\python.exe" app.py || pause
 goto :eof
 
 :nopython

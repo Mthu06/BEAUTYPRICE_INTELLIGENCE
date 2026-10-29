@@ -9,6 +9,7 @@ import json
 import os
 import re
 import secrets
+import socket
 import sqlite3
 import statistics
 import sys
@@ -1037,9 +1038,19 @@ ensure_database()
 if os.environ.get("BEAUTY_SCHEDULER", "1") == "1":
     threading.Thread(target=scheduler_loop, daemon=True, name="crawl-scheduler").start()
 
+def port_in_use(host, port):
+    with closing(socket.socket()) as sock:
+        sock.settimeout(1)
+        return sock.connect_ex(("127.0.0.1" if host in ("", "0.0.0.0") else host, port)) == 0
+
+
 if __name__ == "__main__":
     host = os.environ.get("BEAUTY_HOST", "127.0.0.1")
     port = int(os.environ.get("BEAUTY_PORT", 5000))
+    # Windows vẫn cho mở trùng cổng -> 2 server (cũ + mới) chạy lẫn nhau, trang báo thiếu API. Dừng và hướng dẫn thay vì chạy chồng.
+    if port_in_use(host, port):
+        sys.exit(f"Cổng {port} đang có một server khác chạy (thường là cửa sổ BeautyPrice cũ chưa tắt).\n"
+                 "Chạy stop.bat / stop.sh để tắt server cũ, hoặc chạy run.bat / run.sh (tự tắt server cũ) rồi thử lại.")
     print("CSDL:", DB_PATH)
     print(f"BeautyPrice Intelligence: http://{host}:{port}/")
     app.run(host=host, port=port, debug=os.environ.get("FLASK_DEBUG") == "1", threaded=True)
