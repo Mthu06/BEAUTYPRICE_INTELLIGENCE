@@ -2,7 +2,10 @@
 
 Chạy:  python source-code/tests/test_crawler.py
 """
+import json
+import sqlite3
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -74,6 +77,79 @@ class CrawlerTest(unittest.TestCase):
         self.assertEqual((a["product_name"], a["discount_percent"], a["rating"]), ("A", 20.0, None))
         self.assertEqual(a["categories"], {"Serum", "Sữa rửa mặt"})  # gộp sản phẩm xuất hiện ở 2 danh mục
         self.assertIsNone(b["listed_price_vnd"])  # niêm yết < giá bán -> bỏ
+
+
+def review(rid, pid, spid, name=None, rating=5):
+    return {"source": "hasaki", "source_product_id": spid, "review_id": rid, "product_id": pid, "review_key": f"hasaki:{spid}",
+            "product_name": pid, "rating": rating, "review_text": "Tốt", "review_date": "2026-10-01T10:00:00",
+            "review_date_raw": 1759287600, "is_bought": 1, "has_images": 0, "source_url": "https://hasaki.vn/x.html",
+            "reviewer_name": name}
+
+
+class ImportReviewsTest(unittest.TestCase):
+    """Nạp review Hasaki: thêm review mới, nối biến thể dùng chung review, bổ sung tên; không bao giờ thêm sản phẩm."""
+
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        self.conn.executescript((ROOT / "source-code" / "pipeline" / "schema.sql").read_text(encoding="utf-8"))
+        self.conn.execute("INSERT INTO retailers(retailer_id, retailer_name) VALUES ('hasaki', 'Hasaki')")
+        for pid in ("A", "B"):  # 2 biến thể của cùng một sản phẩm
+            self.conn.execute("INSERT INTO products(product_id, retailer_id, product_name, brand) VALUES (?, 'hasaki', ?, 'X')", (pid, pid))
+        self.conn.execute("""INSERT INTO reviews(source, source_product_id, review_id, product_id, rating)
+                             VALUES ('hasaki', '1', 'r1', 'A', 5)""")
+        self.count = lambda sql: self.conn.execute(sql).fetchone()[0]
+
+    def test_shared_review_is_linked_not_duplicated(self):
+        found = [review("r1", "B", "2", "Lan N."), review("r2", "B", "2"), review("r1", "A", "1", "Lan N."),
+                 review("r9", "KHONG-CO", "9")]
+        added, named, linked = crawl.import_reviews(self.conn, found, "crawl_test", "2026-10-29T00:00:00")
+        self.assertEqual((added, named, linked), (2, 1, 1))
+        self.assertEqual(self.count("SELECT COUNT(*) FROM reviews WHERE review_id = 'r1'"), 1)  # r1 không bị lưu trùng
+        self.assertEqual(self.count("SELECT COUNT(*) FROM review_links WHERE product_id = 'B'"), 1)  # B vẫn thấy r1
+        self.assertEqual(self.count("SELECT reviewer_name FROM reviews WHERE review_id = 'r1'"), "Lan N.")
+        self.assertIsNone(self.count("SELECT product_id FROM reviews WHERE review_id = 'r9'"))  # SP lạ: không thêm sản phẩm
+        self.assertEqual(self.count("SELECT COUNT(*) FROM products"), 2)
+        # chạy lại: không thêm / nối trùng
+        self.assertEqual(crawl.import_reviews(self.conn, found, "crawl_test2", "2026-10-29T01:00:00"), (0, 0, 0))
+
+    def test_names_only(self):
+        added, named, linked = crawl.import_reviews(self.conn, [review("r1", "A", "1", "An T."), review("r2", "A", "1")],
+                                                    "crawl_test", "2026-10-29T00:00:00", allow_new_reviews=False)
+        self.assertEqual((added, named, linked), (0, 1, 0))
+        self.assertEqual(self.count("SELECT COUNT(*) FROM reviews"), 1)
+
+
+class CocoluxReviewTest(unittest.TestCase):
+    """Review Cocolux: API trả trang bắt đầu từ 1, kèm totalRecord; nội dung nhiều dòng; tên tài khoản được rút gọn."""
+
+    class Api:
+        def __init__(self, pages):
+            self.pages, self.calls = pages, []
+
+        def get_json(self, url, method="GET", headers=None):
+            self.calls.append((url, headers))
+            page = int(url.split("&page=")[1].split("&")[0])
+            data = {"data": self.pages.get(page, [])}
+            return data, json.dumps(data)
+
+    def test_paging_and_fields(self):
+        item = lambda i: {"id": i, "rate": 5, "content": "Hương thơm:dịu\nLợi ích:sạch", "createdDate": "2026-01-23T23:28:20.123",
+                          "fullname": "_nguyencham_0211", "mediaJson": '["a.jpg"]' if i == 1 else None, "totalRecord": 21}
+        api = self.Api({1: [item(i) for i in range(1, 21)], 2: [item(21)]})
+        with tempfile.TemporaryDirectory() as tmp:
+            reviews, failed = crawl.crawl_cocolux_reviews(api, [("prod_x", "868", "SP", "https://cocolux.com/x", 21)], 0, Path(tmp))
+        self.assertEqual((len(reviews), failed, len(api.calls)), (21, 0, 2))  # dừng khi đủ totalRecord
+        self.assertEqual(api.calls[0][1]["X-Access-User"], "https://cocolux.com/")
+        r = reviews[0]
+        self.assertEqual((r["source"], r["review_key"], r["review_id"], r["reviewer_name"]), ("cocolux", "cocolux:868", "1", "N***"))
+        self.assertEqual((r["review_text"], r["review_date"], r["has_images"], r["is_bought"]),
+                         ("Hương thơm:dịu; Lợi ích:sạch", "2026-01-23T23:28:20", 1, None))
+
+    def test_mask_name(self):
+        self.assertEqual(crawl.mask_name("Nguyễn Văn An"), "Nguyễn V. A.")
+        self.assertEqual(crawl.mask_name("___"), None)
+        self.assertEqual(crawl.mask_name("a@b.com"), None)
+        self.assertEqual(crawl.mask_name("0912345678"), None)
 
 
 if __name__ == "__main__":

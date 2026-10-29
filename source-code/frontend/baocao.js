@@ -363,7 +363,7 @@
         $("printBtn").addEventListener("click", () => window.print());
         $("exportBtn").addEventListener("click", exportCsv);
 
-        const [products, reviews, quality] = await Promise.allSettled([BP.api("/api/products"), BP.api("/api/reviews"), BP.api("/api/data-quality")]);
+        const [products, reviews, quality] = await Promise.allSettled([BP.api("/api/products"), BP.api("/api/reviews?fields=stats"), BP.api("/api/data-quality")]);
         const guard = (result, render, ids) => {
             if (result.status === "fulfilled") {
                 try { render(result.value); return; } catch (err) { console.error(err); fail(ids, `Lỗi xử lý số liệu: ${err.message}`); return; }

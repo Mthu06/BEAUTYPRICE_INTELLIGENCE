@@ -52,7 +52,8 @@ python crawl.py                            # mọi nguồn, 6 danh mục, tối 
 python crawl.py --max-pages 0              # thu thập toàn bộ (không giới hạn trang)
 python crawl.py --reviews --review-products 50 --review-pages 2   # kèm review Hasaki, bổ sung tên người đánh giá
 python crawl.py --delay 2                  # giãn cách 2 giây giữa 2 yêu cầu tới cùng website
-python crawl.py --add-new-products --add-new-reviews              # cho phép thêm sản phẩm / review mới (mặc định tắt)
+python crawl.py --add-new-products         # cho phép thêm sản phẩm mới (mặc định tắt)
+python crawl.py --reviews --names-only     # không thêm review mới, chỉ bổ sung tên cho review đã có
 python crawl.py --sources hasaki,guardian --categories serum --dry-run   # chạy thử, không ghi CSDL
 ```
 
@@ -62,11 +63,14 @@ Hoặc dùng trang **Thu thập dữ liệu** trên website (tài khoản admin)
 - Nguồn hỗ trợ:
   - **Hasaki**, **Cocolux**, **Thế Giới Skin Food**: lấy qua API JSON công khai mà chính website dùng.
   - **Guardian**: phân tích HTML trang danh mục.
-  - **Watsons**: website bật chống bot (Akamai). Công cụ chỉ ghi nhận trạng thái `blocked` và **không vượt rào**.
+  - **Watsons** (Akamai) và **Guardian** (Cloudflare, từ 10/2026): website bật chống bot. Công cụ chỉ ghi nhận trạng thái `blocked`,
+    **không giải captcha / vượt rào**. Review Guardian hiện có là từ dữ liệu gốc.
 - Công cụ tuân thủ `robots.txt`, giãn cách giữa các yêu cầu (mặc định 1,5 giây, tối thiểu 1 giây), và lưu dữ liệu thô (nén `.gz`) để truy vết.
 - Mỗi lần chạy sinh **snapshot giá mới**. Sản phẩm đã có được nhận ra nhờ dùng cùng công thức mã sản phẩm với dữ liệu gốc, nên lịch sử giá được nối tiếp.
 - Mặc định **không thêm sản phẩm mới**: danh sách sản phẩm giữ nguyên như dữ liệu gốc (5.657 sản phẩm), chỉ lịch sử giá dài thêm.
-  Review chỉ được bổ sung tên người đánh giá (dạng rút gọn, VD “Nguyễn V. A.”).
+- Review **Hasaki** và **Cocolux** (API review công khai của trang sản phẩm, robots.txt cho phép): thêm review mới cho sản phẩm đã có
+  (ưu tiên sản phẩm còn thiếu review), tên người đánh giá chỉ lưu dạng rút gọn (VD “Nguyễn V. A.”). Website hiện cùng một review
+  trên mọi biến thể: review chỉ lưu 1 lần, biến thể khác được nối qua bảng `review_links`. Chọn nguồn: `--review-sources hasaki,cocolux`.
 - `build_database.py` mặc định chỉ dựng từ `dataset/raw/`; thêm `--with-crawl` để nạp lại cả các lần thu thập trong `dataset/crawl/`.
 
 ```bash

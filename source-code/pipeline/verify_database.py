@@ -24,7 +24,7 @@ for stream in (sys.stdout, sys.stderr):
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "dataset" / "raw"
-CRAWL = ROOT / "dataset" / "crawl"
+CRAWL = Path(os.environ.get("BEAUTY_CRAWL_DIR", ROOT / "dataset" / "crawl"))
 DB_PATH = Path(os.environ.get("BEAUTY_DB", ROOT / "dataset" / "beautyprice.db"))
 QUERIES = Path(__file__).with_name("queries.sql")
 REPORT = ROOT / "reports" / "KIEM_TRA_CSDL.md"
@@ -50,9 +50,11 @@ def price(value):
     return number if number > 0 else None
 
 
-def load_clean_data(imported_runs):
+def load_clean_data(imported_runs, review_runs=None):
     """Dữ liệu sạch dùng để tính độc lập: sản phẩm, snapshot giá, review, danh mục, matching, nhật ký.
-    Chỉ tính các lần crawler mà CSDL đã nạp (ghi trong etl_log); mặc định CSDL chỉ có dữ liệu gốc."""
+    Chỉ tính các lần crawler mà CSDL đã nạp (ghi trong etl_log); mặc định CSDL chỉ có dữ liệu gốc.
+    review_runs: lần chạy -> có thêm review mới hay không (đợt "chỉ bổ sung tên" không đổi số review)."""
+    review_runs = review_runs or {}
     crawl_runs = sorted(CRAWL / r for r in imported_runs if (CRAWL / r / "snapshots.csv").exists())
     # đợt nạp không thêm sản phẩm mới (mặc định) -> bỏ qua snapshot của sản phẩm chưa có
     products = {}                              # product_id -> retailer_id
@@ -87,7 +89,7 @@ def load_clean_data(imported_runs):
     pairs = {(r["product_id"].strip(), r["category"].strip()) for r in rows(first("product_categories (*).csv"))
              if r["product_id"].strip() in raw_product_ids and r["category"].strip() in VALID_CATEGORIES}
 
-    reviews, keys = [], set()
+    reviews, keys, review_ids = [], set(), defaultdict(set)  # review_ids: nguồn -> review_id đã có
     for path in sorted(RAW.rglob("*_reviews.csv")):
         source = path.name.split("_")[0]
         for r in rows(path):
@@ -99,24 +101,27 @@ def load_clean_data(imported_runs):
             if not key[1] or not key[2] or not 1 <= rating <= 5 or key in keys or r.get("is_duplicate", "").lower() in ("true", "1", "yes"):
                 continue
             keys.add(key)
+            review_ids[source].add(key[2])
             bought = r.get("is_bought", "").strip().lower()
             reviews.append((source, round(rating, 1), 1 if bought in ("true", "1", "yes") else 0 if bought in ("false", "0", "no") else None))
 
-    for run in crawl_runs:  # review thu thập thêm bằng crawler (Hasaki, kèm tên rút gọn)
-        if (run / "reviews.csv").exists():
-            for r in rows(run / "reviews.csv"):
-                key = (r["source"], r["source_product_id"], r["review_id"])
+    # review crawler thêm mới (Hasaki, Cocolux): cùng quy tắc với crawl.import_reviews - (nguồn, review_id) đã có (kể cả ở biến thể khác)
+    # thì không thêm lại mà chỉ nối biến thể (bảng review_links), nên không làm tăng số review
+    for name in sorted(r for r, added in review_runs.items() if added):
+        if (CRAWL / name / "reviews.csv").exists():
+            for r in rows(CRAWL / name / "reviews.csv"):
                 try:
                     rating = round(float(r["rating"]), 1)
                 except ValueError:
                     continue
-                if all(key) and 1 <= rating <= 5 and key not in keys:
-                    keys.add(key)
+                if r["review_id"] and 1 <= rating <= 5 and r["review_id"] not in review_ids[r["source"]]:
+                    review_ids[r["source"]].add(r["review_id"])
                     reviews.append((r["source"], rating, int(float(r["is_bought"])) if r["is_bought"] not in ("", None) else None))
 
     matching = sum(1 for r in rows(first("product_matching.csv")) if r["match_id"].strip() and r["product_id"].strip() in raw_product_ids)
     return {
-        "products": products, "snapshots": snapshots, "reviews": reviews, "crawl_runs": [p.name for p in crawl_runs],
+        "products": products, "snapshots": snapshots, "reviews": reviews,
+        "crawl_runs": sorted({p.name for p in crawl_runs} | set(review_runs)),
         "counts": {
             "retailers": len(rows(first("retailers.csv"))),
             "products": len(products),
@@ -210,7 +215,9 @@ def main():
     conn.row_factory = sqlite3.Row
     imported = {m[1]: (new or 0) > 0 for step, new in conn.execute("SELECT step, rows_affected FROM etl_log")
                 if (m := re.match(r"Nạp lần thu thập (crawl_\S+) \(crawler\)", step))}
-    data = load_clean_data(imported)
+    review_runs = {m[1]: (added or 0) > 0 for step, added in conn.execute("SELECT step, rows_out FROM etl_log")
+                   if (m := re.match(r"Nạp lần thu thập (crawl_\S+) \(review\)", step))}
+    data = load_clean_data(imported, review_runs)
     lines, ok_all = [], True
 
     print("1. Số bản ghi sau import (CSV sạch -> CSDL)")
@@ -223,8 +230,13 @@ def main():
         print(f"   {table:<20} CSV={expected:<7} CSDL={actual:<7} {'PASS' if ok else 'FAIL'}")
     integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
     fk_errors = len(conn.execute("PRAGMA foreign_key_check").fetchall())
-    ok_all &= integrity == "ok" and fk_errors == 0
-    print(f"   integrity_check={integrity}, lỗi khóa ngoại={fk_errors}")
+    # liên kết review - biến thể: không được trỏ về chính sản phẩm của review, và chỉ nối sản phẩm cùng nhà bán lẻ
+    data["bad_links"] = conn.execute("""SELECT COUNT(*) FROM review_links l JOIN reviews r ON r.review_pk = l.review_pk
+                                        JOIN products p ON p.product_id = l.product_id
+                                        WHERE l.product_id = r.product_id OR p.retailer_id <> r.source""").fetchone()[0] \
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'review_links'").fetchone() else 0
+    ok_all &= integrity == "ok" and fk_errors == 0 and data["bad_links"] == 0
+    print(f"   integrity_check={integrity}, lỗi khóa ngoại={fk_errors}, liên kết review sai={data['bad_links']}")
 
     print("2. Đối chiếu truy vấn (SQL vs Python độc lập)")
     expected = independent_results(data)
@@ -261,7 +273,8 @@ def write_report(data, count_rows, integrity, fk_errors, query_rows, ok_all):
         "|---|---:|---:|:---:|",
         *[f"| `{t}` | {fmt(e)} | {fmt(a)} | {'✅ PASS' if ok else '❌ FAIL'} |" for t, e, a, ok in count_rows],
         "",
-        f"`PRAGMA integrity_check` = **{integrity}**; lỗi khóa ngoại (`PRAGMA foreign_key_check`) = **{fk_errors}**.",
+        f"`PRAGMA integrity_check` = **{integrity}**; lỗi khóa ngoại (`PRAGMA foreign_key_check`) = **{fk_errors}**; "
+        f"liên kết review – biến thể sai (`review_links`) = **{data['bad_links']}**.",
         "",
         "Quy tắc đếm lại khớp với quy tắc import:",
         "- `products` và `price_snapshots` = dữ liệu gốc cộng các lần thu thập bằng crawler.",

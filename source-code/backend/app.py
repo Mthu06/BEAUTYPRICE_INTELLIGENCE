@@ -71,8 +71,7 @@ MIGRATED_COLUMNS = {"reviews": {"reviewer_name"}}
 def migrate(conn):
     """CSDL cũ: bổ sung bảng/cột mới (CSDL dựng mới đã có sẵn nên không ghi gì)."""
     conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-    if "reviewer_name" not in {r[1] for r in conn.execute("PRAGMA table_info(reviews)")}:
-        conn.execute("ALTER TABLE reviews ADD COLUMN reviewer_name TEXT")
+    crawl.ensure_review_schema(conn)  # cột reviewer_name + bảng review_links
 
 
 def ensure_database():
@@ -217,6 +216,15 @@ def require_auth(roles=None):
             return function(*args, **kwargs)
         return wrapper
     return decorator
+
+
+@app.get("/api/public-stats")
+def public_stats():
+    """Số liệu tổng cho trang đăng nhập (không cần đăng nhập; chỉ là con số tổng, không lộ dữ liệu chi tiết)."""
+    return ok(**one("""SELECT (SELECT COUNT(*) FROM retailers) AS retailers, (SELECT COUNT(*) FROM products) AS products,
+                              (SELECT COUNT(*) FROM reviews) AS reviews, (SELECT COUNT(*) FROM price_snapshots) AS snapshots"""),
+              by_retailer=rows("""SELECT r.retailer_id, r.retailer_name, COUNT(p.product_id) AS products FROM retailers r
+                                  LEFT JOIN products p ON p.retailer_id = r.retailer_id GROUP BY r.retailer_id ORDER BY products DESC"""))
 
 
 @app.post("/api/login")
@@ -466,12 +474,30 @@ def price_trend():
 @app.get("/api/reviews")
 @require_auth()
 def get_reviews():
-    reviews = rows("""SELECT review_key, product_id, source, source_product_id, review_id, product_name, category, rating,
-                             review_text, review_date, review_date_raw, is_bought, has_images, source_url, reviewer_name FROM reviews""")
+    """?product_id=X: review của sản phẩm X, gồm cả review dùng chung với biến thể khác (bảng review_links).
+    ?fields=stats: chỉ các trường cần cho thống kê (trang Báo cáo), không kèm nội dung -> nhẹ hơn nhiều."""
+    product_id = request.args.get("product_id")
+    if request.args.get("fields") == "stats":
+        reviews = rows("SELECT source, product_id, rating, is_bought, has_images FROM reviews")
+    else:
+        where, params = ("WHERE r.product_id = ? OR r.review_pk IN (SELECT review_pk FROM review_links WHERE product_id = ?)",
+                         (product_id, product_id)) if product_id else ("", ())
+        reviews = rows(f"""SELECT review_key, product_id, source, source_product_id, review_id, product_name, category, rating,
+                                  review_text, review_date, review_date_raw, is_bought, has_images, source_url, reviewer_name
+                           FROM reviews r {where}""", params)
     for r in reviews:
         r["is_bought"] = None if r["is_bought"] is None else bool(r["is_bought"])
         r["has_images"] = None if r["has_images"] is None else bool(r["has_images"])
     return ok(total=len(reviews), reviews=reviews)
+
+
+@app.get("/api/reviews/counts")
+@require_auth()
+def review_counts():
+    """Số review đã thu thập của từng sản phẩm (tính cả review dùng chung giữa các biến thể)."""
+    counts = rows("""SELECT product_id, COUNT(*) AS n FROM (SELECT product_id FROM reviews WHERE product_id IS NOT NULL
+                                                         UNION ALL SELECT product_id FROM review_links) GROUP BY product_id""")
+    return ok(counts={r["product_id"]: r["n"] for r in counts})
 
 
 @app.get("/api/data-quality")
@@ -493,8 +519,9 @@ import crawl  # noqa: E402
 
 crawl.DB_PATH = DB_PATH
 DEFAULT_CRAWL_OPTIONS = {"sources": ["hasaki", "cocolux", "tgsf", "guardian", "watsons"], "categories": list(crawl.CATEGORIES),
-                         "max_pages": 3, "reviews": False, "review_pages": 2, "review_products": 50, "delay": 1.5,
-                         "add_new_products": False, "add_new_reviews": False}
+                         "max_pages": 3, "reviews": False, "review_sources": list(crawl.REVIEW_SOURCES),
+                         "review_pages": 2, "review_products": 50, "delay": 1.5,
+                         "add_new_products": False, "add_new_reviews": True}
 # Giới hạn từng tùy chọn số (0 = không giới hạn); giãn cách tối thiểu 1 giây để lịch sự với website.
 CRAWL_LIMITS = {"max_pages": (int, 0, 200), "review_pages": (int, 0, 100), "review_products": (int, 0, 5000), "delay": (float, 1, 30)}
 SOURCE_LABELS = {"hasaki": "Hasaki", "cocolux": "Cocolux", "tgsf": "Thế Giới Skin Food", "guardian": "Guardian", "watsons": "Watsons"}
@@ -507,6 +534,10 @@ def clean_crawl_options(data):
         return None, "Nguồn không hợp lệ!"
     if not isinstance(opts["categories"], list) or not set(opts["categories"]) <= set(crawl.CATEGORIES):
         return None, "Danh mục không hợp lệ!"
+    if not isinstance(opts["review_sources"], list) or not set(opts["review_sources"]) <= set(crawl.REVIEW_SOURCES):
+        return None, "Nguồn review không hợp lệ!"
+    if opts["reviews"] and not opts["review_sources"]:
+        return None, "Chọn ít nhất 1 nguồn review!"
     if not opts["sources"] or (not opts["categories"] and not opts["reviews"]):
         return None, "Chọn ít nhất 1 nguồn và 1 danh mục (hoặc bật thu thập review)!"
     for key, (cast, low, high) in CRAWL_LIMITS.items():
@@ -587,10 +618,13 @@ def crawl_history(limit=15):
         run["retailers"][r["retailer_id"]] = r["status"] if status in (None, r["status"]) else "partial"
         run["records"] += r["records_found"] or 0
         run["finished_at"] = max(run["finished_at"] or "", r["finished_at"] or "")
-    for step in rows("SELECT step, rows_out, rows_affected FROM etl_log WHERE step LIKE 'Nạp lần thu thập crawl_%'"):
-        run_id = step["step"].split()[4]
+    for step in rows("SELECT step, run_at, rows_in, rows_out, rows_affected FROM etl_log WHERE step LIKE 'Nạp lần thu thập crawl_%'"):
+        run_id, is_review = step["step"].split()[4], "(review)" in step["step"]
+        if run_id not in runs and is_review:  # lần chạy chỉ lấy review (không có nhật ký giá)
+            runs[run_id] = {"run_id": run_id, "started_at": step["run_at"], "finished_at": None, "retailers": {"hasaki": "success"},
+                            "records": step["rows_in"]}
         if run_id in runs:
-            key = ("reviews_added", "reviews_named") if "(review)" in step["step"] else ("new_snapshots", "new_products")
+            key = ("reviews_added", "reviews_named") if is_review else ("new_snapshots", "new_products")
             runs[run_id].update({key[0]: step["rows_out"], key[1]: step["rows_affected"]})
     return sorted(runs.values(), key=lambda r: r["run_id"], reverse=True)[:limit]
 
@@ -603,6 +637,7 @@ def crawl_status():
     default_schedule = {"enabled": False, "interval_hours": 24, "options": DEFAULT_CRAWL_OPTIONS}
     return ok(job=crawl_job.snapshot(), schedule=get_setting("crawl_schedule", default_schedule), sources=sources,
               categories=[{"key": k, "label": v} for k, v in crawl.CATEGORIES.items()],
+              review_sources=[{"key": k, "label": SOURCE_LABELS[k]} for k in crawl.REVIEW_SOURCES],
               defaults=DEFAULT_CRAWL_OPTIONS, limits={k: [low, high] for k, (_, low, high) in CRAWL_LIMITS.items()},
               history=crawl_history())
 

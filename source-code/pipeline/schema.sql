@@ -91,6 +91,14 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_key     ON reviews(review_key);
 
+-- Hasaki hiện CÙNG một review trên mọi biến thể (dung tích, màu...) của sản phẩm. Review chỉ lưu 1 lần ở bảng reviews
+-- (thống kê không đếm trùng); các biến thể khác nối tới review qua bảng này để trang tra cứu vẫn hiện đủ.
+CREATE TABLE IF NOT EXISTS review_links (
+    product_id  TEXT    NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    review_pk   INTEGER NOT NULL REFERENCES reviews(review_pk) ON DELETE CASCADE,
+    PRIMARY KEY (product_id, review_pk)
+) WITHOUT ROWID;
+
 -- ---------------------------------------------------------------- thu thập & đối chiếu
 CREATE TABLE IF NOT EXISTS collection_logs (
     run_id              TEXT PRIMARY KEY,

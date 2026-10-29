@@ -64,7 +64,7 @@ ORDER BY ngay, p.retailer_id;
 --           da_mua: {$sum: {$cond: [{$eq: ["$is_bought", 1]}, 1, 0]}},
 --           co_thong_tin: {$sum: {$cond: [{$ne: ["$is_bought", null]}, 1, 0]}}}}, {$sort: {_id: 1}}])
 SELECT source, COUNT(*) AS so_review, ROUND(AVG(rating), 4) AS diem_tb,
-       SUM(is_bought = 1) AS da_mua, SUM(is_bought IS NOT NULL) AS co_thong_tin
+       SUM(CASE WHEN is_bought = 1 THEN 1 ELSE 0 END) AS da_mua, SUM(is_bought IS NOT NULL) AS co_thong_tin  -- CASE: nguồn không có thông tin vẫn ra 0, không ra NULL
 FROM reviews
 GROUP BY source
 ORDER BY source;

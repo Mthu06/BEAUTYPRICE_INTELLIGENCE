@@ -14,7 +14,10 @@ Chạy (chỉ cần thư viện chuẩn của Python):
     python crawl.py                                          # mọi nguồn, mọi danh mục, tối đa 3 trang/danh mục
     python crawl.py --sources hasaki,cocolux --categories serum --max-pages 0   # 0 = không giới hạn trang
     python crawl.py --dry-run                                # chỉ thu thập + lưu file, không ghi CSDL
-    python crawl.py --sources hasaki --categories "" --reviews --review-pages 0   # chỉ lấy review Hasaki (kèm tên rút gọn)
+    python crawl.py --sources hasaki --categories "" --reviews --review-pages 0   # chỉ lấy review (Hasaki + Cocolux, kèm tên rút gọn)
+
+Review: Hasaki (/mobile/v3/detail/product/rating-reviews) và Cocolux (/api/GetData/getlistcommentbycontent) - API công khai
+mà chính trang sản phẩm dùng, robots.txt cho phép. Guardian/Watsons chặn bot (robots.txt của Guardian cấm /review/) -> không lấy.
 
 Website: trang "Thu thập dữ liệu" (Admin) gọi hàm run() của file này, chạy nền và có lịch tự động.
 """
@@ -100,7 +103,7 @@ class Http:
         matches = [(length, allow) for allow, length, rx in self._robots_rules(parts.netloc) if rx.match(path)]
         return not matches or max(matches)[1]  # luật khớp dài nhất thắng; bằng nhau thì Allow thắng
 
-    def _raw(self, method, url, data=None, check_robots=True):
+    def _raw(self, method, url, data=None, check_robots=True, headers=None):
         if check_robots and not self.allowed(url):
             raise PermissionError(f"robots.txt không cho phép: {url}")
         host = urllib.parse.urlsplit(url).netloc
@@ -109,7 +112,7 @@ class Http:
             time.sleep(wait)
         request = urllib.request.Request(url, method=method, data=data, headers={
             "User-Agent": USER_AGENT, "Accept": "application/json, text/html;q=0.9, */*;q=0.5",
-            "Accept-Language": "vi-VN,vi;q=0.9", "X-Requested-With": "XMLHttpRequest"})
+            "Accept-Language": "vi-VN,vi;q=0.9", "X-Requested-With": "XMLHttpRequest", **(headers or {})})
         for attempt in range(self.retries + 1):
             try:
                 self.requests += 1
@@ -130,16 +133,16 @@ class Http:
                     continue
                 raise ConnectionError(f"Không kết nối được {host}: {error}") from error
 
-    def get_text(self, url, method="GET"):
-        status, body = self._raw(method, url, data=b"" if method == "POST" else None)
+    def get_text(self, url, method="GET", headers=None):
+        status, body = self._raw(method, url, data=b"" if method == "POST" else None, headers=headers)
         if status in (401, 403, 429) or re.search(r"<title>\s*(Just a moment|Access Denied)", body[:5000], re.I):
             raise Blocked(f"HTTP {status} - website chặn truy cập tự động")
         if status != 200:
             raise ConnectionError(f"HTTP {status} tại {url}")
         return body
 
-    def get_json(self, url, method="GET"):
-        body = self.get_text(url, method)
+    def get_json(self, url, method="GET", headers=None):
+        body = self.get_text(url, method, headers)
         try:
             return json.loads(body), body
         except ValueError as error:
@@ -226,6 +229,7 @@ class Cocolux(Source):
                 "current_price_vnd": to_price(p.get("finalPrice")), "listed_price_vnd": to_price(p.get("price") or p.get("priceOld")),
                 "rating": round(p["totalStar"] / count, 2) if count and p.get("totalStar") else None, "review_count": count,
                 "promotion_text": p.get("promotionText"), "availability": None,
+                "source_product_id": str(p.get("id") or ""),  # mã nội bộ, dùng cho API review
             })
         return records, data.get("total")
 
@@ -405,20 +409,28 @@ def mask_name(name):
     if not name or "@" in name or len(re.sub(r"\D", "", name)) >= 6:
         return None
     words = [w for w in re.split(r"\s+", name) if w]
-    if len(words) == 1:
-        return words[0][0].upper() + "***"
+    if len(words) == 1:  # tên tài khoản (VD "_nguyencham_0211") -> ký tự chữ/số đầu tiên
+        first = next((c for c in words[0] if c.isalnum()), None)
+        return first.upper() + "***" if first else None
     return " ".join([words[0]] + [w[0].upper() + "." for w in words[1:]])
 
 
 def review_targets(limit=0):
-    """Sản phẩm Hasaki cần lấy review: có lượt đánh giá trên website hoặc đã có review trong CSDL (nhiều review trước)."""
+    """Sản phẩm Hasaki cần lấy review: có lượt đánh giá trên website hoặc đã có review trong CSDL.
+    Ưu tiên sản phẩm còn THIẾU review nhiều nhất (website ghi nhận nhiều hơn số đã lưu), rồi tới sản phẩm nhiều review."""
     with sqlite3.connect(DB_PATH) as conn:
+        ensure_review_schema(conn)
         rows = conn.execute("""
-            SELECT p.product_id, substr(p.review_key, 8) AS spid, p.product_name, p.product_url,
-                   COALESCE(v.review_count, 0) + (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.product_id) AS weight
-            FROM products p JOIN v_products v ON v.product_id = p.product_id
-            WHERE p.review_key LIKE 'hasaki:%' AND weight > 0
-            ORDER BY weight DESC, p.product_id""").fetchall()
+            SELECT product_id, spid, product_name, product_url, shown, stored FROM (
+                SELECT p.product_id, substr(p.review_key, 8) AS spid, p.product_name, p.product_url,
+                       COALESCE(v.review_count, 0) AS shown,
+                       (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.product_id)
+                       + (SELECT COUNT(*) FROM review_links l WHERE l.product_id = p.product_id) AS stored
+                FROM products p JOIN v_products v ON v.product_id = p.product_id
+                WHERE p.review_key LIKE 'hasaki:%')
+            WHERE shown > 0 OR stored > 0
+            ORDER BY MAX(shown - stored, 0) DESC, shown + stored DESC, product_id""").fetchall()
+    rows = [row[:4] + (row[4] - row[5],) for row in rows]
     return rows[:limit] if limit > 0 else rows
 
 
@@ -469,6 +481,101 @@ def crawl_hasaki_reviews(http, targets, max_pages, run_dir, log=print, stop=None
         if index % 25 == 0 or index == len(targets):
             log(f"[hasaki_reviews] {index}/{len(targets)} sản phẩm, {len(reviews)} review")
     return reviews, failed
+
+
+# ---------------------------------------------------------------- review Cocolux
+
+COCOLUX_REVIEW_API = "https://cocolux.com/api/GetData/getlistcommentbycontent?pageSize={size}&page={page}&type=0&productId={cid}"
+COCOLUX_HEADERS = {"X-Access-User": "https://cocolux.com/", "Content-Type": "application/json"}  # giống trang sản phẩm Cocolux
+
+
+def stored_review_counts(conn, source):
+    """Số review đã lưu của từng sản phẩm (kể cả review dùng chung qua review_links)."""
+    return dict(conn.execute("""SELECT product_id, COUNT(*) FROM (
+                                    SELECT product_id FROM reviews WHERE source = ? AND product_id IS NOT NULL
+                                    UNION ALL SELECT l.product_id FROM review_links l JOIN reviews r ON r.review_pk = l.review_pk
+                                    WHERE r.source = ?) GROUP BY product_id""", (source, source)))
+
+
+def cocolux_review_targets(http, limit=0, log=print, stop=None):
+    """Mã nội bộ + số đánh giá của sản phẩm Cocolux lấy từ API danh sách (vài chục yêu cầu nhẹ, không tải trang sản phẩm).
+    Chỉ giữ sản phẩm đã có trong CSDL và có đánh giá; ưu tiên sản phẩm còn thiếu nhiều review."""
+    with sqlite3.connect(DB_PATH) as conn:
+        ensure_review_schema(conn)
+        existing = dict(conn.execute("SELECT product_id, product_name FROM products WHERE retailer_id = 'cocolux'"))
+        stored = stored_review_counts(conn, "cocolux")
+    source, found = Cocolux(), {}
+    for codes in source.categories.values():
+        for code in codes:
+            page = seen = 0
+            while True:
+                check_stop(stop)
+                page += 1
+                try:
+                    _, items, total = source.fetch(http, code, page)
+                except Exception as error:  # noqa: BLE001
+                    log(f"[cocolux_reviews] {code}: lỗi trang {page} - {error}")
+                    break
+                for r in items:
+                    url = clean_text(r.get("product_url"))
+                    pid = product_id("cocolux", url)
+                    if pid in existing and r.get("source_product_id") and (r.get("review_count") or 0) > 0:
+                        found[pid] = (pid, r["source_product_id"], existing[pid], url, r["review_count"] - stored.get(pid, 0))
+                seen += len(items)
+                if not items or (total and seen >= total) or len(items) < source.page_size:
+                    break
+    rows = sorted(found.values(), key=lambda t: (-max(t[4], 0), t[0]))
+    return rows[:limit] if limit > 0 else rows
+
+
+def review_text_lines(text):
+    """Cocolux chia nội dung theo dòng ('Hương thơm: ...') -> nối bằng '; ' để giữ ý."""
+    return clean_text("; ".join(line.strip() for line in str(text or "").splitlines() if line.strip()))
+
+
+def crawl_cocolux_reviews(http, targets, max_pages, run_dir, log=print, stop=None, page_size=20):
+    """Lấy review qua API công khai /api/GetData/getlistcommentbycontent (type=0 = đánh giá có số sao; trang bắt đầu từ 1)."""
+    raw_dir = run_dir / "raw" / "cocolux_reviews"
+    reviews, failed = [], 0
+    for index, (pid, cid, pname, url, _) in enumerate(targets, 1):
+        if stop is not None and stop.is_set():
+            log("[cocolux_reviews] Đã dừng theo yêu cầu")
+            break
+        page = fetched = 0
+        while max_pages <= 0 or page < max_pages:
+            page += 1
+            try:
+                data, raw = http.get_json(COCOLUX_REVIEW_API.format(size=page_size, page=page, cid=cid), headers=COCOLUX_HEADERS)
+            except Exception as error:  # noqa: BLE001
+                failed += 1
+                log(f"[cocolux_reviews] {cid}: lỗi trang {page} - {error}")
+                break
+            items = data.get("data") or []
+            if not items:
+                break
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            with gzip.open(raw_dir / f"{cid}_page_{page}.json.gz", "wt", encoding="utf-8") as file:
+                file.write(raw)
+            for r in items:
+                media = r.get("mediaJson") or ""
+                reviews.append({
+                    "source": "cocolux", "source_product_id": cid, "review_id": str(r.get("id") or ""), "product_id": pid,
+                    "review_key": f"cocolux:{cid}", "product_name": pname, "rating": r.get("rate"),
+                    "review_text": review_text_lines(r.get("content")), "review_date": (r.get("createdDate") or "")[:19] or None,
+                    "review_date_raw": r.get("createdDate"), "is_bought": None,
+                    "has_images": 1 if media not in ("", "[]", None) else 0, "source_url": url,
+                    "reviewer_name": mask_name(r.get("fullname")),
+                })
+            fetched += len(items)
+            total = int(items[0].get("totalRecord") or 0)
+            if fetched >= total or len(items) < page_size:
+                break
+        if index % 25 == 0 or index == len(targets):
+            log(f"[cocolux_reviews] {index}/{len(targets)} sản phẩm, {len(reviews)} review")
+    return reviews, failed
+
+
+REVIEW_SOURCES = ("hasaki", "cocolux")  # nguồn lấy review tự động được (không bị chặn, robots.txt cho phép)
 
 
 # ---------------------------------------------------------------- làm sạch + nạp CSDL
@@ -562,10 +669,18 @@ def load_run(run_dir):
     return records, logs, run_dir.name, run_at, reviews
 
 
-def ensure_reviewer_column(conn):
-    """CSDL cũ chưa có cột tên người đánh giá -> bổ sung (không mất dữ liệu)."""
+REVIEW_LINKS_DDL = """CREATE TABLE IF NOT EXISTS review_links (
+    product_id  TEXT    NOT NULL REFERENCES products(product_id) ON DELETE CASCADE,
+    review_pk   INTEGER NOT NULL REFERENCES reviews(review_pk) ON DELETE CASCADE,
+    PRIMARY KEY (product_id, review_pk)
+) WITHOUT ROWID"""
+
+
+def ensure_review_schema(conn):
+    """CSDL cũ: bổ sung cột tên người đánh giá và bảng liên kết review - biến thể (không mất dữ liệu)."""
     if "reviewer_name" not in {row[1] for row in conn.execute("PRAGMA table_info(reviews)")}:
         conn.execute("ALTER TABLE reviews ADD COLUMN reviewer_name TEXT")
+    conn.execute(REVIEW_LINKS_DDL)
 
 
 def import_records(conn, records, logs, run_id, run_at, allow_new_products=False):
@@ -617,35 +732,47 @@ def import_records(conn, records, logs, run_id, run_at, allow_new_products=False
     return new_products, new_snapshots
 
 
-def import_reviews(conn, reviews, run_id, run_at, allow_new_reviews=False):
-    """Review đã có (cùng nguồn + sản phẩm + review_id) -> bổ sung tên người đánh giá.
-    Mặc định KHÔNG thêm review mới (giữ nguyên bộ review gốc); allow_new_reviews=True mới thêm.
-    Hasaki trả cùng một review cho các biến thể của một sản phẩm -> review_id đã có ở sản phẩm khác thì không thêm lại."""
-    ensure_reviewer_column(conn)
+def import_reviews(conn, reviews, run_id, run_at, allow_new_reviews=True):
+    """Nạp review (Hasaki, Cocolux) cho các sản phẩm ĐÃ CÓ (không bao giờ thêm sản phẩm):
+    - review chưa có -> thêm mới (allow_new_reviews=False: chỉ bổ sung tên cho review đã có);
+    - website hiện CÙNG một review trên mọi biến thể của sản phẩm -> review chỉ lưu 1 lần theo (nguồn, review_id),
+      biến thể còn lại được nối qua bảng review_links để vẫn xem được review;
+    - review đã có mà chưa có tên -> bổ sung tên rút gọn."""
+    ensure_review_schema(conn)
     existing_products = {pid for (pid,) in conn.execute("SELECT product_id FROM products")}
-    known_ids = {rid for (rid,) in conn.execute("SELECT review_id FROM reviews WHERE source = 'hasaki'")}
-    added = named = 0
+    sources = sorted({r["source"] for r in reviews})
+    known = {(src, rid): (pk, pid) for pk, src, rid, pid in conn.execute(
+        f"SELECT review_pk, source, review_id, product_id FROM reviews WHERE source IN ({','.join('?' * len(sources)) or 'NULL'})", sources)}
+    added = named = linked = 0
     with conn:
         for r in reviews:
             pid = r["product_id"] if r.get("product_id") in existing_products else None
-            if allow_new_reviews and r["review_id"] not in known_ids:
-                known_ids.add(r["review_id"])
-                added += conn.execute(
-                """INSERT OR IGNORE INTO reviews(source, source_product_id, review_id, product_id, review_key, product_name, category,
-                                                 rating, review_text, review_date, review_date_raw, is_bought, has_images, source_url, reviewer_name)
-                   VALUES (?,?,?,?,?,?,NULL,?,?,?,?,?,?,?,?)""",
-                (r["source"], r["source_product_id"], r["review_id"], pid, r["review_key"], r["product_name"], r["rating"],
-                 r["review_text"], r["review_date"], str(r["review_date_raw"] or ""), r["is_bought"], r["has_images"],
-                 r["source_url"], r["reviewer_name"])).rowcount
+            key = (r["source"], r["review_id"])
+            if key not in known:
+                if not allow_new_reviews:
+                    continue
+                cursor = conn.execute(
+                    """INSERT OR IGNORE INTO reviews(source, source_product_id, review_id, product_id, review_key, product_name, category,
+                                                     rating, review_text, review_date, review_date_raw, is_bought, has_images, source_url, reviewer_name)
+                       VALUES (?,?,?,?,?,?,NULL,?,?,?,?,?,?,?,?)""",
+                    (r["source"], r["source_product_id"], r["review_id"], pid, r["review_key"], r["product_name"], r["rating"],
+                     r["review_text"], r["review_date"], str(r["review_date_raw"] or ""), r["is_bought"], r["has_images"],
+                     r["source_url"], r["reviewer_name"]))
+                if cursor.rowcount:
+                    added += 1
+                    known[key] = (cursor.lastrowid, pid)
+                continue
+            pk, owner = known[key]
+            if pid and pid != owner:
+                linked += conn.execute("INSERT OR IGNORE INTO review_links(product_id, review_pk) VALUES (?, ?)", (pid, pk)).rowcount
             if r.get("reviewer_name"):
-                named += conn.execute("""UPDATE reviews SET reviewer_name = ? WHERE source = ? AND source_product_id = ? AND review_id = ?
-                                         AND reviewer_name IS NULL""",
-                                      (r["reviewer_name"], r["source"], r["source_product_id"], r["review_id"])).rowcount
+                named += conn.execute("UPDATE reviews SET reviewer_name = ? WHERE review_pk = ? AND reviewer_name IS NULL",
+                                      (r["reviewer_name"], pk)).rowcount
         if reviews:
             conn.execute("INSERT INTO etl_log(run_at, step, table_name, rows_in, rows_out, rows_affected, note) VALUES (?,?,?,?,?,?,?)",
                          (run_at, f"Nạp lần thu thập {run_id} (review)", "reviews", len(reviews), added, named,
-                          f"{added} review mới, bổ sung tên cho {named} review đã có"))
-    return added, named
+                          f"{added} review mới, bổ sung tên cho {named} review đã có, nối {linked} review dùng chung cho biến thể"))
+    return added, named, linked
 
 
 def connect_db():
@@ -659,9 +786,11 @@ def connect_db():
 # ---------------------------------------------------------------- chạy một lần thu thập (dùng chung cho dòng lệnh và website)
 
 def run(sources, categories, max_pages=3, delay=1.5, dry_run=False, reviews=False, review_pages=2, review_products=0,
-        add_new_products=False, add_new_reviews=False, log=print, stop=None):
-    """Thu thập giá (+ review Hasaki nếu chọn), lưu dataset/crawl/<run_id>/ và nạp CSDL. Trả về bảng tóm tắt."""
-    unknown = [s for s in sources if s not in SOURCES] + [c for c in categories if c not in CATEGORIES]
+        add_new_products=False, add_new_reviews=True, log=print, stop=None, review_sources=REVIEW_SOURCES):
+    """Thu thập giá (+ review Hasaki/Cocolux nếu chọn), lưu dataset/crawl/<run_id>/ và nạp CSDL. Trả về bảng tóm tắt.
+    review_products / review_pages áp dụng cho TỪNG nguồn review."""
+    unknown = ([s for s in sources if s not in SOURCES] + [c for c in categories if c not in CATEGORIES]
+               + [s for s in review_sources if s not in REVIEW_SOURCES])
     if unknown:
         raise ValueError(f"Không biết: {', '.join(unknown)}")
     now = datetime.now().astimezone()
@@ -672,10 +801,10 @@ def run(sources, categories, max_pages=3, delay=1.5, dry_run=False, reviews=Fals
     run_dir.mkdir(parents=True, exist_ok=True)
     http = Http(delay=delay)
     log(f"Bắt đầu {run_id}: nguồn={','.join(sources) or '-'}; danh mục={','.join(categories) or '-'}; "
-        f"tối đa {max_pages or 'không giới hạn'} trang; review Hasaki={'có' if reviews else 'không'}; "
+        f"tối đa {max_pages or 'không giới hạn'} trang; review={','.join(review_sources) if reviews else 'không'}; "
         f"thêm SP mới={'có' if add_new_products else 'không'}; thêm review mới={'có' if add_new_reviews else 'không'}")
     summary = {"run_id": run_id, "status": "success", "records": 0, "products_valid": 0, "new_products": 0, "new_snapshots": 0,
-               "reviews_found": 0, "reviews_added": 0, "reviews_named": 0, "requests": 0}
+               "reviews_found": 0, "reviews_added": 0, "reviews_named": 0, "reviews_linked": 0, "requests": 0}
 
     all_records, all_logs = [], []
     try:
@@ -700,19 +829,29 @@ def run(sources, categories, max_pages=3, delay=1.5, dry_run=False, reviews=Fals
         log(f"Đã nạp CSDL: +{summary['new_snapshots']} snapshot giá, +{summary['new_products']} sản phẩm mới")
 
     if reviews and summary["status"] != "stopped":
-        targets = review_targets(review_products)
-        log(f"Thu thập review Hasaki cho {len(targets)} sản phẩm (tối đa {review_pages or 'mọi'} trang x 20 review/sản phẩm)")
-        found, failed = crawl_hasaki_reviews(http, targets, review_pages, run_dir, log, stop)
+        found, failed = [], 0
+        for name in review_sources:
+            if stop is not None and stop.is_set():
+                break
+            targets = review_targets(review_products) if name == "hasaki" else cocolux_review_targets(http, review_products, log, stop)
+            missing = sum(1 for t in targets if t[4] > 0)
+            log(f"Thu thập review {SOURCES[name].__name__} cho {len(targets)} sản phẩm ({missing} sản phẩm còn thiếu review được ưu tiên trước; "
+                f"tối đa {review_pages or 'mọi'} trang x 20 review/sản phẩm)")
+            crawler = crawl_hasaki_reviews if name == "hasaki" else crawl_cocolux_reviews
+            items, errors = crawler(http, targets, review_pages, run_dir, log, stop)
+            found, failed = found + items, failed + errors
         found = clean_reviews(found)
         save_csv(run_dir / "reviews.csv", found, REVIEW_FIELDS)
         summary["reviews_found"] = len(found)
         if not dry_run and found:
             conn = connect_db()
             try:
-                summary["reviews_added"], summary["reviews_named"] = import_reviews(conn, found, run_id, collected_at, add_new_reviews)
+                summary["reviews_added"], summary["reviews_named"], summary["reviews_linked"] = import_reviews(
+                    conn, found, run_id, collected_at, add_new_reviews)
             finally:
                 conn.close()
-        log(f"Review: {len(found)} thu được, +{summary['reviews_added']} mới, bổ sung tên {summary['reviews_named']}"
+        log(f"Review: {len(found)} thu được, +{summary['reviews_added']} mới, bổ sung tên {summary['reviews_named']}, "
+            f"nối {summary['reviews_linked']} review dùng chung cho biến thể"
             + (f", {failed} sản phẩm lỗi" if failed else ""))
         if stop is not None and stop.is_set():
             summary["status"] = "stopped"
@@ -733,11 +872,12 @@ def main():
     parser.add_argument("--categories", default=",".join(CATEGORIES), help="danh sách danh mục, VD serum,sua-tam (để trống = bỏ qua giá)")
     parser.add_argument("--max-pages", type=int, default=3, help="số trang tối đa mỗi danh mục (0 = không giới hạn)")
     parser.add_argument("--delay", type=float, default=1.5, help="giây chờ giữa 2 yêu cầu tới cùng website (tối thiểu 1)")
-    parser.add_argument("--reviews", action="store_true", help="thu thập thêm review Hasaki (kèm tên người đánh giá rút gọn)")
+    parser.add_argument("--reviews", action="store_true", help="thu thập thêm review (kèm tên người đánh giá rút gọn)")
+    parser.add_argument("--review-sources", default=",".join(REVIEW_SOURCES), help="nguồn review, VD hasaki,cocolux")
     parser.add_argument("--review-pages", type=int, default=2, help="số trang review mỗi sản phẩm, 20 review/trang (0 = tất cả)")
     parser.add_argument("--review-products", type=int, default=50, help="số sản phẩm lấy review, ưu tiên nhiều đánh giá (0 = tất cả)")
     parser.add_argument("--add-new-products", action="store_true", help="thêm cả sản phẩm mới (mặc định chỉ cập nhật giá SP đã có)")
-    parser.add_argument("--add-new-reviews", action="store_true", help="thêm cả review mới (mặc định chỉ bổ sung tên cho review đã có)")
+    parser.add_argument("--names-only", action="store_true", help="không thêm review mới, chỉ bổ sung tên cho review đã có")
     parser.add_argument("--dry-run", action="store_true", help="chỉ thu thập và lưu file, không ghi CSDL")
     parser.add_argument("--list", action="store_true", help="liệt kê nguồn và danh mục rồi thoát")
     args = parser.parse_args()
@@ -752,8 +892,8 @@ def main():
     split = lambda value: [x.strip() for x in value.split(",") if x.strip()]
     try:
         run(split(args.sources), split(args.categories), args.max_pages, args.delay, args.dry_run,
-            args.reviews, args.review_pages, args.review_products, args.add_new_products, args.add_new_reviews,
-            log=lambda m: print(f"  {m}"))
+            args.reviews, args.review_pages, args.review_products, args.add_new_products, not args.names_only,
+            log=lambda m: print(f"  {m}"), review_sources=split(args.review_sources))
     except (ValueError, FileNotFoundError) as error:
         sys.exit(str(error))
 

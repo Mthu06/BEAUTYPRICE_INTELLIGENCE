@@ -1,6 +1,6 @@
 # Kết quả kiểm tra CSDL (Giai đoạn 5)
 
-- **Chạy lúc:** 29/10/2026 14:36. Script: `source-code/pipeline/verify_database.py`; truy vấn: `source-code/pipeline/queries.sql`.
+- **Chạy lúc:** 29/10/2026 15:21. Script: `source-code/pipeline/verify_database.py`; truy vấn: `source-code/pipeline/queries.sql`.
 - **Nguồn đối chiếu:** CSV trong `dataset/raw/`.
 - **Cách đối chiếu:** phép tính độc lập bằng Python thuần đọc thẳng CSV, không dùng SQL.
 - **Kết luận: ✅ TẤT CẢ PASS**
@@ -17,7 +17,7 @@
 | `product_matching` | 130 | 130 | ✅ PASS |
 | `collection_logs` | 27 | 27 | ✅ PASS |
 
-`PRAGMA integrity_check` = **ok**; lỗi khóa ngoại (`PRAGMA foreign_key_check`) = **0**.
+`PRAGMA integrity_check` = **ok**; lỗi khóa ngoại (`PRAGMA foreign_key_check`) = **0**; liên kết review – biến thể sai (`review_links`) = **0**.
 
 Quy tắc đếm lại khớp với quy tắc import:
 - `products` và `price_snapshots` = dữ liệu gốc cộng các lần thu thập bằng crawler.

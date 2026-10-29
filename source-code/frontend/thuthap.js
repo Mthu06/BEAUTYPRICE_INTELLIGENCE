@@ -28,6 +28,7 @@
         const checked = (box) => [...$(box).querySelectorAll("input:checked")].map((i) => i.value);
         const opts = {
             sources: checked("sourceList"), categories: checked("categoryList"), reviews: $("optReviews").checked,
+            review_sources: checked("reviewSourceList"),
             add_new_products: $("optNewProducts").checked, add_new_reviews: $("optNewReviews").checked
         };
         Object.entries(NUMBER_FIELDS).forEach(([key, id]) => { opts[key] = Number($(id).value); });
@@ -46,7 +47,7 @@
     function describe(o) {
         const all = (n, unit) => n ? `${BP.formatNumber(n)} ${unit}` : `toàn bộ ${unit}`;
         return `${o.sources.length} nguồn · ${o.categories.length} danh mục · ${all(o.max_pages, "trang")}/danh mục · giãn cách ${BP.formatNumber(o.delay, "—", 1)} giây`
-            + (o.reviews ? ` · review: ${o.review_products ? BP.formatNumber(o.review_products) : "tất cả"} sản phẩm × ${all(o.review_pages, "trang")}` : " · không lấy review")
+            + (o.reviews ? ` · review ${(o.review_sources || []).join(", ")}: ${o.review_products ? BP.formatNumber(o.review_products) : "tất cả"} sản phẩm/nguồn × ${all(o.review_pages, "trang")}` : " · không lấy review")
             + (o.add_new_products ? " · thêm sản phẩm mới" : "");
     }
 
@@ -56,7 +57,7 @@
         const crawlable = o.sources.filter((s) => supported[s]).length;
         const unknown = !o.max_pages && o.categories.length && crawlable || o.reviews && (!o.review_products || !o.review_pages);
         let requests = crawlable * o.categories.length * (o.max_pages || 1) + o.sources.length;
-        if (o.reviews) requests += (o.review_products || 900) * (o.review_pages || 1);
+        if (o.reviews) requests += o.review_sources.length * (o.review_products || 700) * (o.review_pages || 1) + (o.review_sources.includes("cocolux") ? 25 : 0);
         const delay = Math.max(1, o.delay || 1);
         $("estimate").innerHTML = `${BP.icon("info")}<span>Ước tính ${unknown ? "ít nhất" : "tối đa"} <b>~${BP.formatNumber(requests)} yêu cầu</b>, `
             + `khoảng <b>${unknown ? "từ " : ""}${minutes(requests * delay)}</b>${unknown ? " (chọn “toàn bộ / tất cả” nên tùy dữ liệu thực tế, có thể rất lâu)" : ""}.`
@@ -66,6 +67,7 @@
     function fillOptions(opts) {
         document.querySelectorAll("#sourceList input").forEach((i) => { i.checked = opts.sources.includes(i.value); });
         document.querySelectorAll("#categoryList input").forEach((i) => { i.checked = opts.categories.includes(i.value); });
+        document.querySelectorAll("#reviewSourceList input").forEach((i) => { i.checked = (opts.review_sources || []).includes(i.value); });
         $("optNewProducts").checked = !!opts.add_new_products;
         $("optNewReviews").checked = !!opts.add_new_reviews;
         setNumbers(opts);
@@ -79,6 +81,7 @@
         $("sourceList").innerHTML = data.sources.map((s) => `<label class="${s.supported ? "" : "tt-disabled"}" title="${s.supported ? "" : "Website chặn bot: chỉ kiểm tra truy cập"}">
             <input type="checkbox" value="${esc(s.key)}"><span class="dot r-${esc(s.retailer_id)}"></span>${esc(s.label)}${s.supported ? "" : " (chỉ kiểm tra)"}</label>`).join("");
         $("categoryList").innerHTML = data.categories.map((c) => `<label><input type="checkbox" value="${esc(c.key)}">${esc(c.label)}</label>`).join("");
+        $("reviewSourceList").innerHTML = (data.review_sources || []).map((s) => `<label><input type="checkbox" value="${esc(s.key)}"><span class="dot r-${esc(s.key)}"></span>${esc(s.label)}</label>`).join("");
         fillOptions({ ...data.defaults, ...data.schedule?.options });
     }
 
@@ -100,7 +103,8 @@
         const s = job.summary;
         $("jobSummary").innerHTML = s ? [
             ["Bản ghi giá", s.records], ["+ Snapshot giá", s.new_snapshots], ["+ Sản phẩm mới", s.new_products],
-            ["Review thu được", s.reviews_found], ["Review bổ sung tên", s.reviews_named], ["Yêu cầu HTTP", s.requests]
+            ["Review thu được", s.reviews_found], ["+ Review mới", s.reviews_added], ["Review bổ sung tên", s.reviews_named],
+            ["Review nối biến thể", s.reviews_linked], ["Yêu cầu HTTP", s.requests]
         ].map(([label, value]) => `<div class="stat-tile"><div class="label">${label}</div><div class="value">${BP.formatNumber(value)}</div></div>`).join("")
             : job.error ? BP.stateHtml(job.error, "error") : "";
     }
@@ -132,8 +136,9 @@
             <td><div class="tt-retailers">${Object.entries(r.retailers).map(([k, v]) =>
                 `<span class="badge ${STATUS[v]?.[0] || ""}" title="${esc(STATUS[v]?.[1] || v)}"><span class="dot r-${esc(k)}"></span>${esc(BP.RETAILER_NAMES[k] || k)}</span>`).join("")}</div></td>
             <td class="num">${BP.formatNumber(r.records)}</td><td class="num">${BP.formatNumber(r.new_snapshots, "—")}</td>
-            <td class="num">${BP.formatNumber(r.new_products, "—")}</td><td class="num">${BP.formatNumber(r.reviews_named, "—")}</td></tr>`).join("")
-            : `<tr><td colspan="7">${BP.stateHtml("Chưa có lần thu thập nào bằng crawler.")}</td></tr>`;
+            <td class="num">${BP.formatNumber(r.new_products, "—")}</td><td class="num">${BP.formatNumber(r.reviews_added, "—")}</td>
+            <td class="num">${BP.formatNumber(r.reviews_named, "—")}</td></tr>`).join("")
+            : `<tr><td colspan="8">${BP.stateHtml("Chưa có lần thu thập nào bằng crawler.")}</td></tr>`;
     }
 
     async function loadCounts() {
@@ -168,6 +173,7 @@
         const opts = readOptions();
         if (!opts.sources.length) return BP.toast("Chọn ít nhất 1 nguồn.", "bad");
         if (!opts.categories.length && !opts.reviews) return BP.toast("Chọn ít nhất 1 danh mục hoặc bật thu thập review.", "bad");
+        if (opts.reviews && !opts.review_sources.length) return BP.toast("Chọn ít nhất 1 nguồn review.", "bad");
         $("startBtn").disabled = true;
         try {
             const data = await BP.api("/api/crawl/start", { method: "POST", body: opts });

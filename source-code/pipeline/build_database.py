@@ -173,11 +173,14 @@ class Loader:
 
     def retailers(self):
         rows = read_csv(find_raw("retailers.csv"))
-        data = [(clean_text(r["retailer_id"]).lower(), clean_text(r["retailer_name"]), clean_text(r.get("country")),
+        # CSV gốc ghi tên không dấu -> hiển thị đúng tên thương hiệu tiếng Việt
+        display = {"the_gioi_skin_food": "Thế Giới Skin Food"}
+        data = [(clean_text(r["retailer_id"]).lower(),
+                 display.get(clean_text(r["retailer_id"]).lower()) or clean_text(r["retailer_name"]), clean_text(r.get("country")),
                  clean_text(r.get("currency")) or "VND", clean_text(r.get("website_url")),
                  1 if parse_bool(r.get("is_active")) != 0 else 0) for r in rows]
         self.conn.executemany("INSERT INTO retailers VALUES (?,?,?,?,?,?)", data)
-        self.log("Nạp nhà bán lẻ", "retailers", len(rows), len(data))
+        self.log("Nạp nhà bán lẻ", "retailers", len(rows), len(data), note="tên hiển thị có dấu: Thế Giới Skin Food")
         return {d[0] for d in data}
 
     def categories(self):
@@ -375,7 +378,7 @@ class Loader:
 def import_crawl_runs(conn):
     """Nạp lại các lần thu thập bằng crawler (dataset/crawl/crawl_*/) - chỉ khi chạy với --with-crawl.
     Mặc định CSDL chỉ gồm dữ liệu gốc dataset/raw (5.657 sản phẩm), khớp EDA/KPI."""
-    crawl_dir = ROOT / "dataset" / "crawl"
+    crawl_dir = Path(os.environ.get("BEAUTY_CRAWL_DIR", ROOT / "dataset" / "crawl"))
     runs = sorted(p for p in crawl_dir.glob("crawl_*") if (p / "snapshots.csv").exists()) if crawl_dir.exists() else []
     if not runs:
         return
@@ -385,7 +388,7 @@ def import_crawl_runs(conn):
         records, logs, run_id, _, reviews = crawl.load_run(run)
         records, _ = crawl.clean_records(records)  # áp quy tắc làm sạch hiện hành cho dữ liệu đã lưu
         new_products, new_snapshots = crawl.import_records(conn, records, logs, run_id, RUN_AT, allow_new_products=True)
-        added, named = crawl.import_reviews(conn, crawl.clean_reviews(reviews), run_id, RUN_AT, allow_new_reviews=True) if reviews else (0, 0)
+        added, named, _ = crawl.import_reviews(conn, crawl.clean_reviews(reviews), run_id, RUN_AT, allow_new_reviews=True) if reviews else (0, 0, 0)
         print(f"  - Nạp lần thu thập {run_id:<36} +{new_snapshots} snapshot, +{new_products} sản phẩm mới"
               + (f", +{added} review, bổ sung tên {named} review" if reviews else ""))
 

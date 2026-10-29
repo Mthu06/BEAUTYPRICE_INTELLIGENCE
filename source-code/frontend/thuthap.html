@@ -55,13 +55,15 @@
                         <button type="button" class="btn btn-outline btn-sm" data-preset="normal">Thường ngày</button>
                         <button type="button" class="btn btn-outline btn-sm" data-preset="full">Toàn bộ</button></div>
                     <label class="tt-check"><input type="checkbox" id="optReviews">
-                        <span><b>Thu thập review Hasaki</b> và bổ sung tên người đánh giá (rút gọn, VD “Nguyễn V. A.”) cho review đã có</span></label>
+                        <span><b>Thu thập review</b> cho sản phẩm đã có (ưu tiên sản phẩm còn thiếu review), kèm tên người đánh giá rút gọn (VD “Nguyễn V. A.”)</span></label>
+                    <div class="field"><span class="field-label">Nguồn review</span><div class="tt-checks" id="reviewSourceList"></div>
+                        <span class="hint">Guardian, Watsons chặn bot (robots.txt của Guardian cấm <code>/review/</code>) nên không lấy tự động.</span></div>
                     <details class="tt-advanced">
                         <summary>Tùy chọn nâng cao</summary>
                         <label class="tt-check"><input type="checkbox" id="optNewProducts">
                             <span>Thêm cả <b>sản phẩm mới</b> (mặc định tắt: chỉ cập nhật giá cho sản phẩm đã có, giữ nguyên danh sách sản phẩm gốc)</span></label>
                         <label class="tt-check"><input type="checkbox" id="optNewReviews">
-                            <span>Thêm cả <b>review mới</b> (mặc định tắt: chỉ bổ sung tên cho review đã có)</span></label>
+                            <span>Thêm <b>review mới</b> cho sản phẩm đã có (mặc định bật; bỏ chọn = chỉ bổ sung tên cho review đã có)</span></label>
                     </details>
                     <p class="notice notice-info tt-estimate" id="estimate"></p>
                     <div class="row">
@@ -99,7 +101,7 @@
             <div class="table-wrap">
                 <table class="table">
                     <thead><tr><th>Lần chạy</th><th>Bắt đầu</th><th>Nhà bán lẻ</th><th class="num">Bản ghi</th>
-                        <th class="num">+ Snapshot giá</th><th class="num">+ Sản phẩm mới</th><th class="num">Review bổ sung tên</th></tr></thead>
+                        <th class="num">+ Snapshot giá</th><th class="num">+ Sản phẩm mới</th><th class="num">+ Review mới</th><th class="num">Review bổ sung tên</th></tr></thead>
                     <tbody id="historyTable"></tbody>
                 </table>
             </div>
@@ -110,9 +112,12 @@
             <ul class="insights">
                 <li><span class="ins-no">1</span><span>Đọc và <b>tuân thủ robots.txt</b> của từng website, giãn cách giữa các yêu cầu (mặc định 1,5 giây, không cho đặt dưới 1 giây), thử lại có giới hạn. Mỗi trang review có 20 đánh giá.</span></li>
                 <li><span class="ins-no">2</span><span>Hasaki, Cocolux, Thế Giới Skin Food lấy qua API JSON công khai mà chính website dùng; Guardian đọc HTML trang danh mục.
-                    <b>Watsons bật chống bot</b> nên chỉ ghi nhận trạng thái “blocked”, không vượt rào.</span></li>
+                    Review: Hasaki và Cocolux qua API review công khai của trang sản phẩm.
+                    <b>Watsons (Akamai) và Guardian (Cloudflare, từ 10/2026) bật chống bot</b> nên công cụ chỉ ghi nhận trạng thái “blocked”, không giải captcha / vượt rào.</span></li>
                 <li><span class="ins-no">3</span><span>Mặc định <b>không thêm sản phẩm mới</b>: mỗi lần chạy chỉ thêm snapshot giá cho sản phẩm đã có, nên danh sách sản phẩm gốc giữ nguyên còn lịch sử giá dài thêm.</span></li>
                 <li><span class="ins-no">4</span><span>Tên người đánh giá chỉ lưu <b>dạng rút gọn</b>, không lưu mã tài khoản, để hạn chế dữ liệu cá nhân.</span></li>
+                <li><span class="ins-no">5</span><span>Hasaki hiện <b>cùng một review trên mọi biến thể</b> của sản phẩm: review chỉ lưu 1 lần (thống kê không đếm trùng),
+                    các biến thể khác được nối qua bảng <code>review_links</code> nên vẫn xem được review ở trang Tra cứu.</span></li>
             </ul>
         </section>
 

@@ -34,6 +34,10 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(self.client.post("/api/login", json={"username": "admin", "password": "sai"}).status_code, 401)
         self.assertEqual(self.client.post("/api/login", json=[1, 2]).status_code, 400)
         self.assertEqual(self.client.post("/api/products", json={}, headers=self.user).status_code, 403)
+        # trang đăng nhập: chỉ số tổng, không cần đăng nhập, khớp CSDL
+        stats = self.client.get("/api/public-stats").get_json()
+        self.assertEqual(stats["products"], sum(r["products"] for r in stats["by_retailer"]))
+        self.assertEqual(len(stats["by_retailer"]), stats["retailers"])
 
     def test_read_endpoints(self):
         for path in ["/api/products", "/api/reviews", "/api/price-statistics", "/api/price-trend", "/api/lookups",
@@ -79,6 +83,16 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(self.client.delete(f"/api/products/{pid}", headers=self.admin).status_code, 200)
         self.assertEqual(self.client.delete(f"/api/products/{pid}", headers=self.admin).status_code, 404)
 
+
+    def test_reviews_by_product(self):
+        counts = self.client.get("/api/reviews/counts", headers=self.user).get_json()["counts"]
+        pid, n = max(counts.items(), key=lambda kv: kv[1])
+        one = self.client.get(f"/api/reviews?product_id={pid}", headers=self.user).get_json()
+        self.assertEqual(one["total"], n)
+        self.assertTrue(all("review_text" in r for r in one["reviews"]))
+        stats = self.client.get("/api/reviews?fields=stats", headers=self.user).get_json()
+        self.assertEqual(set(stats["reviews"][0]), {"source", "product_id", "rating", "is_bought", "has_images"})
+        self.assertEqual(self.client.get("/api/reviews?product_id=khong-co", headers=self.user).get_json()["total"], 0)
 
     def test_crawl_options(self):
         # Chỉ kiểm tra phân quyền, dữ liệu vào và lưu lịch: không gọi mạng thật

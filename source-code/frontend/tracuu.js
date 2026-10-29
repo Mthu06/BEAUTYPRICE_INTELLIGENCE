@@ -18,10 +18,10 @@
     };
 
     let rows = [], rowById = new Map(), filtered = [];
-    let reviewsByProduct = null;       // Map product_id -> reviews; null = chưa tải được
+    let reviewCounts = null;           // Map product_id -> số review đã thu thập; null = chưa tải được
     let retailers = [], categories = [];
     let page = 1, loadSeq = 0, detailSeq = 0;
-    let detail = null;                 // { id, reviews, shown }
+    let detail = null;                 // { id, reviews, shown, loading }
     let editing = null, deleting = null, busy = false;
 
     // ---------------------------------------------------------------- tiện ích
@@ -57,7 +57,7 @@
             price: num(p.current_price_vnd),
             discount: num(p.discount_percent),
             rating: num(p.rating) > 0 ? num(p.rating) : null,
-            collected: reviewsByProduct ? (reviewsByProduct.get(String(p.id)) || []).length : null
+            collected: reviewCounts ? reviewCounts.get(String(p.id)) || 0 : null
         };
     }
 
@@ -75,19 +75,12 @@
         if (!rows.length) renderSkeleton();
         const [products, reviews, lookups] = await Promise.allSettled([
             BP.api("/api/products"),
-            reviewsByProduct ? null : BP.api("/api/reviews"),
+            reviewCounts ? null : BP.api("/api/reviews/counts"),
             retailers.length ? null : BP.api("/api/lookups")
         ]);
         // Review/lookups không phụ thuộc lần tải nên giữ lại kể cả khi lần tải này đã cũ.
-        if (!reviewsByProduct && reviews.status === "fulfilled" && reviews.value) {
-            reviewsByProduct = new Map();
-            for (const r of reviews.value.reviews || []) {
-                if (r.product_id == null) continue;
-                const key = String(r.product_id);
-                if (!reviewsByProduct.has(key)) reviewsByProduct.set(key, []);
-                reviewsByProduct.get(key).push(r);
-            }
-        }
+        // số review mỗi sản phẩm (kể cả review dùng chung giữa các biến thể); nội dung tải khi mở chi tiết
+        if (!reviewCounts && reviews.status === "fulfilled" && reviews.value) reviewCounts = new Map(Object.entries(reviews.value.counts || {}));
         if (!retailers.length && lookups.status === "fulfilled" && lookups.value) {
             retailers = lookups.value.retailers || [];
             categories = lookups.value.categories || [];
@@ -98,7 +91,7 @@
             else showState(products.reason.message, "error");
             return;
         }
-        setNotice("noticeBox", reviewsByProduct ? "" : `Không tải được review đã thu thập (${reviews.reason?.message || "lỗi không xác định"}). Cột "Review thu thập" tạm hiển thị "—".`);
+        setNotice("noticeBox", reviewCounts ? "" : `Không tải được review đã thu thập (${reviews.reason?.message || "lỗi không xác định"}). Cột "Review thu thập" tạm hiển thị "—".`);
         rows = (products.value.products || []).map(buildRow);
         rowById = new Map(rows.map((r) => [r.id, r]));
         fillSelect("retailerFilter", rows.map((r) => [r.p.retailer_id, r.p.source || r.p.retailer_id]));
@@ -213,7 +206,8 @@
     // ---------------------------------------------------------------- chi tiết
     function openDetail(row) {
         const p = row.p, seq = ++detailSeq, listed = num(p.listed_price_vnd);
-        detail = { id: row.id, reviews: reviewsByProduct?.get(row.id) || [], shown: REVIEW_PAGE };
+        const collected = reviewCounts?.get(row.id) || 0;
+        detail = { id: row.id, reviews: [], shown: REVIEW_PAGE, loading: collected > 0 };
         $("detailTitle").textContent = p.product_name || "Chi tiết sản phẩm";
         $("detailSub").innerHTML = `${esc(p.brand || "—")} · ${retailerHtml(p)}`;
         paintDots($("detailSub"));
@@ -223,8 +217,10 @@
             tile("Giá niêm yết", listed > 0 ? BP.formatVnd(listed) : "—", listed > 0 ? "" : "Không có giá niêm yết"),
             tile("Giảm giá", row.discount > 0 ? `<span class="tc-off">−${BP.formatPercent(row.discount)}</span>` : "—"),
             tile("Rating website", num(p.rating) > 0 ? `<span class="tc-rating"><b>★</b>${BP.formatRating(p.rating)}</span>` : "—",
-                num(p.review_count) > 0 ? `${BP.formatNumber(p.review_count)} lượt đánh giá` : "Chưa có lượt đánh giá"),
-            tile("Review đã thu thập", reviewsByProduct ? BP.formatNumber(detail.reviews.length) : "—", reviewsByProduct ? "Hasaki / Guardian" : "Không tải được review")
+                num(p.review_count) > 0 ? `${BP.formatNumber(p.review_count)} lượt đánh giá`
+                    : collected ? "Website không hiện số lượt" : "Chưa có lượt đánh giá"),
+            tile("Review đã thu thập", reviewCounts ? BP.formatNumber(collected) : "—",
+                reviewCounts ? `Nội dung đánh giá từ ${esc(BP.RETAILER_NAMES[p.retailer_id] || p.retailer_id || "website")}` : "Không tải được review")
         ].join("");
         renderInfo(p, null);
         $("historyMeta").textContent = $("historyNote").textContent = "";
@@ -235,6 +231,19 @@
         renderReviewList();
         openModal("detailModal");
         $("detailModal").querySelector(".modal-body").scrollTop = 0;
+
+        if (detail.loading) {
+            BP.api(`/api/reviews?product_id=${encodeURIComponent(row.id)}`).then((data) => {
+                if (seq !== detailSeq) return;
+                Object.assign(detail, { reviews: data.reviews || [], loading: false });
+            }).catch((err) => {
+                if (seq === detailSeq) Object.assign(detail, { loading: false, error: err.message });
+            }).finally(() => {
+                if (seq !== detailSeq) return;
+                renderReviewStats();
+                renderReviewList();
+            });
+        }
 
         BP.api(`/api/products/${encodeURIComponent(row.id)}`).then((data) => {
             if (seq !== detailSeq) return; // đã mở sản phẩm khác
@@ -299,12 +308,27 @@
             : `Thấp nhất ${BP.formatVnd(min)} · Cao nhất ${BP.formatVnd(max)} · Thay đổi từ lần đầu: ${change === 0 ? "không đổi" : (change > 0 ? "+" : "−") + BP.formatVnd(Math.abs(change))}`;
     }
 
+    /** Vì sao sản phẩm chưa có review: website không có lượt nào, hay có nhưng chưa / không thể thu thập nội dung. */
+    function emptyReviewReason() {
+        const p = rowById.get(detail.id)?.p || {}, count = num(p.review_count);
+        const name = BP.RETAILER_NAMES[p.retailer_id] || p.retailer_id || "Website";
+        if (!(count > 0)) return `Sản phẩm chưa có đánh giá nào trên ${name}.`;
+        const shown = `${name} ghi nhận ${BP.formatNumber(count)} lượt đánh giá`;
+        if (p.retailer_id === "hasaki" || p.retailer_id === "cocolux")
+            return `${shown} nhưng chưa thu thập nội dung. Quản trị viên vào “Thu thập dữ liệu”, bật “Thu thập review” (nguồn ${name}) để lấy; sản phẩm còn thiếu review được ưu tiên.`;
+        if (p.retailer_id === "guardian" || p.retailer_id === "watsons")
+            return `${shown}, nhưng ${name} bật chống bot (${p.retailer_id === "guardian" ? "Cloudflare" : "Akamai"}) nên công cụ không thu thập nội dung (không vượt rào). Review ${name} đang có là từ dữ liệu gốc.`;
+        return `${shown}, nhưng ${name} không cung cấp nội dung đánh giá qua kênh công khai mà công cụ được phép dùng.`;
+    }
+
     function renderReviewStats() {
         const list = detail.reviews, total = list.length;
         $("reviewStar").parentElement.hidden = $("reviewList").parentElement.hidden = !total;
         $("reviewStats").parentElement.classList.toggle("tc-single", !total);
         if (!total) {
-            $("reviewStats").innerHTML = `<div class="tc-review-empty">${reviewsByProduct ? "Chưa thu thập được review nào cho sản phẩm này." : "Không tải được dữ liệu review."}</div>`;
+            const message = detail.loading ? "Đang tải review…" : detail.error ? `Không tải được review: ${detail.error}`
+                : reviewCounts ? emptyReviewReason() : "Không tải được dữ liệu review.";
+            $("reviewStats").innerHTML = `<div class="tc-review-empty">${esc(message)}</div>`;
             return;
         }
         const counts = [0, 0, 0, 0, 0, 0];

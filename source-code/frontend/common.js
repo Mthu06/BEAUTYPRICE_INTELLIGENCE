@@ -386,7 +386,7 @@
         status: { good: "#0ca30c", warn: "#fab219", serious: "#ec835a", bad: "#d03b3b" },
         ink: "#151821", ink2: "#4b5163", muted: "#8a90a2", grid: "#eceef3", axis: "#d5d8e3"
     };
-    const RETAILER_NAMES = { cocolux: "Cocolux", guardian: "Guardian", hasaki: "Hasaki", the_gioi_skin_food: "The Gioi Skin Food", watsons: "Watsons" };
+    const RETAILER_NAMES = { cocolux: "Cocolux", guardian: "Guardian", hasaki: "Hasaki", the_gioi_skin_food: "Thế Giới Skin Food", watsons: "Watsons" };
     const retailerKey = (value) => {
         const s = normalizeText(value).replace(/\s+/g, "_");
         return Object.keys(RETAILER_NAMES).find((k) => k === s || normalizeText(RETAILER_NAMES[k]).replace(/\s+/g, "_") === s) || s;
