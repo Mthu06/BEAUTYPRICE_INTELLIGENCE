@@ -1,0 +1,26 @@
+{
+  "name": "beautyprice_20261029T161016.db",
+  "source": "server",
+  "created_at": "2026-10-29T16:10:16",
+  "created_by": "admin",
+  "note": "Sao lưu thủ công từ website",
+  "size_bytes": 9342976,
+  "sha256": "f6c8782f161ab307dee0e3f4eeda7e89e19f2970e7c5db1e9b00bd0e91d7a318",
+  "integrity": "ok",
+  "foreign_key_errors": 0,
+  "counts": {
+    "retailers": 5,
+    "categories": 6,
+    "products": 5657,
+    "product_categories": 6350,
+    "price_snapshots": 6350,
+    "reviews": 6673,
+    "users": 2,
+    "collection_logs": 27,
+    "etl_log": 24,
+    "ml_runs": 10,
+    "ml_price_predictions": 5657,
+    "ml_clusters": 5657,
+    "ml_anomalies": 5657
+  }
+}

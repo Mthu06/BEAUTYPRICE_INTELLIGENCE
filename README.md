@@ -97,7 +97,7 @@ Lưu ý: dựng lại CSDL sẽ xóa các thay đổi admin đã nhập qua webs
 │  ├─ analysis/               EDA, KPI, dashboard offline, insight (Giai đoạn 6)
 │  └─ tests/                  test_api.py, test_backup.py, test_crawler.py, e2e/ (test case giao diện)
 ├─ dataset/                   raw/ (CSV gốc), crawl/ (các lần thu thập mới), beautyprice.db, models/, backups/ (bản sao lưu)
-├─ reports/                   THIET_KE_CSDL.md, SO_DO_MAN_HINH.md, TEST_CASES.md, BAO_CAO_LOI.md, demo/ (ảnh, video, tệp xuất)
+├─ reports/                   GIAI_THICH_CODE.md, THIET_KE_CSDL.md, KIEM_TRA_CSDL.md, KET_QUA_MO_HINH.md, SO_DO_MAN_HINH.md, TEST_CASES.md, BAO_CAO_LOI.md, demo/
 ├─ refs/                      tài liệu tham khảo, kết quả mô hình bản trước
 └─ libs/                      danh sách phần mềm & thư viện
 ```
@@ -115,9 +115,12 @@ Test case giao diện (21 trường hợp, tự chụp ảnh, xuất tệp và q
 - Kết quả và bằng chứng nằm ở `reports/TEST_CASES.md` và `reports/demo/`.
 - Chạy lại bằng `cd source-code/tests/e2e && npm install && node testcases.js http://127.0.0.1:5000 <thư mục kết quả>`. Cần Chrome và `ffmpeg` để quay video; nên chạy với CSDL bản sao vì test có thêm/xóa dữ liệu.
 
-Tài liệu Giai đoạn 8:
-- `reports/SO_DO_MAN_HINH.md`: sơ đồ màn hình, luồng người dùng, ma trận phân quyền, wireframe.
-- `reports/TEST_CASES.md`: test case kèm bằng chứng.
+Tài liệu trong `reports/`:
+- `GIAI_THICH_CODE.md`: giải thích code từ tổng quan tới từng file/hàm, lưu ý và câu hỏi vấn đáp thường gặp.
+- `THIET_KE_CSDL.md`: ERD, từ điển dữ liệu, quy tắc nghiệp vụ; `KIEM_TRA_CSDL.md`: kết quả kiểm tra CSDL (tự sinh).
+- `KET_QUA_MO_HINH.md`: kết quả 4 nhóm mô hình học máy.
+- `SO_DO_MAN_HINH.md`: sơ đồ màn hình, luồng người dùng, ma trận phân quyền, wireframe.
+- `TEST_CASES.md`: test case kèm bằng chứng; `BAO_CAO_LOI.md`: rà soát lỗi và các đợt nâng cấp.
 
 ## Biến môi trường (tùy chọn)
 

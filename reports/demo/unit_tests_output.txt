@@ -1,34 +1,51 @@
-# Kết quả kiểm thử tự động - 2026-10-29 12:25
-
-## test_api.py
+===== test_api.py =====
 test_auth (__main__.ApiTest.test_auth) ... ok
+test_crawl_options (__main__.ApiTest.test_crawl_options) ... ok
 test_crud_keeps_price_history (__main__.ApiTest.test_crud_keeps_price_history) ... ok
 test_read_endpoints (__main__.ApiTest.test_read_endpoints) ... ok
+test_reviews_by_product (__main__.ApiTest.test_reviews_by_product) ... ok
 test_validation (__main__.ApiTest.test_validation) ... ok
 
 ----------------------------------------------------------------------
-Ran 4 tests in 2.153s
+Ran 6 tests in 1.388s
 
 OK
-
-## test_backup.py
+===== test_backup.py =====
 test_backup_change_restore_verify (__main__.BackupRestoreTest.test_backup_change_restore_verify) ... ok
 test_only_admin (__main__.BackupRestoreTest.test_only_admin) ... ok
 test_reject_bad_names (__main__.BackupRestoreTest.test_reject_bad_names) ... ok
 test_tampered_backup_is_refused (__main__.BackupRestoreTest.test_tampered_backup_is_refused) ... ok
+test_old_backup_is_migrated (__main__.UploadTest.test_old_backup_is_migrated) ... ok
+test_upload_rejected (__main__.UploadTest.test_upload_rejected) ... ok
+test_upload_then_restore (__main__.UploadTest.test_upload_then_restore) ... C:\Users\Trong\Downloads\beauty\source-code\tests\test_backup.py:32: ResourceWarning: unclosed file <_io.FileIO name='C:\\Users\\Trong\\AppData\\Local\\Temp\\tmp_8oqg0gv' mode='rb+' closefd=True>
+  prices = conn.execute("SELECT product_id, current_price_vnd FROM v_products ORDER BY product_id").fetchall()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Users\Trong\Downloads\beauty\source-code\tests\test_backup.py:32: ResourceWarning: unclosed file <_io.FileIO name='C:\\Users\\Trong\\AppData\\Local\\Temp\\tmpyzhl72sp' mode='rb+' closefd=True>
+  prices = conn.execute("SELECT product_id, current_price_vnd FROM v_products ORDER BY product_id").fetchall()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Users\Trong\Downloads\beauty\source-code\tests\test_backup.py:32: ResourceWarning: unclosed file <_io.FileIO name='C:\\Users\\Trong\\AppData\\Local\\Temp\\tmpjqvsen_l' mode='rb+' closefd=True>
+  prices = conn.execute("SELECT product_id, current_price_vnd FROM v_products ORDER BY product_id").fetchall()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Users\Trong\Downloads\beauty\source-code\tests\test_backup.py:32: ResourceWarning: unclosed file <_io.FileIO name='C:\\Users\\Trong\\AppData\\Local\\Temp\\tmprzvj4xfr' mode='rb+' closefd=True>
+  prices = conn.execute("SELECT product_id, current_price_vnd FROM v_products ORDER BY product_id").fetchall()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
 
 ----------------------------------------------------------------------
-Ran 4 tests in 1.796s
+Ran 7 tests in 3.666s
 
 OK
-
-## test_crawler.py
+===== test_crawler.py =====
+test_mask_name (__main__.CocoluxReviewTest.test_mask_name) ... ok
+test_paging_and_fields (__main__.CocoluxReviewTest.test_paging_and_fields) ... ok
 test_clean_records (__main__.CrawlerTest.test_clean_records) ... ok
 test_guardian_parser (__main__.CrawlerTest.test_guardian_parser) ... ok
 test_product_id_matches_original_dataset (__main__.CrawlerTest.test_product_id_matches_original_dataset) ... ok
 test_robots_rules (__main__.CrawlerTest.test_robots_rules) ... ok
+test_names_only (__main__.ImportReviewsTest.test_names_only) ... ok
+test_shared_review_is_linked_not_duplicated (__main__.ImportReviewsTest.test_shared_review_is_linked_not_duplicated) ... ok
 
 ----------------------------------------------------------------------
-Ran 4 tests in 0.001s
+Ran 8 tests in 0.009s
 
 OK

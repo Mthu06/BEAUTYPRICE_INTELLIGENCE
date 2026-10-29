@@ -1,0 +1,26 @@
+{
+  "name": "beautyprice_20261029T161019_truoc-phuc-hoi.db",
+  "source": "server",
+  "created_at": "2026-10-29T16:10:20",
+  "created_by": "admin",
+  "note": "Tự động trước khi phục hồi beautyprice_20261029T161016.db",
+  "size_bytes": 9342976,
+  "sha256": "b41f2acc6c547d532ea1d86e9aee0ae0397e49833235b27da6471ff30608bfb6",
+  "integrity": "ok",
+  "foreign_key_errors": 0,
+  "counts": {
+    "retailers": 5,
+    "categories": 6,
+    "products": 5656,
+    "product_categories": 6349,
+    "price_snapshots": 6349,
+    "reviews": 6673,
+    "users": 2,
+    "collection_logs": 27,
+    "etl_log": 24,
+    "ml_runs": 10,
+    "ml_price_predictions": 5656,
+    "ml_clusters": 5656,
+    "ml_anomalies": 5656
+  }
+}

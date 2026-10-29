@@ -9,14 +9,17 @@ Tài liệu gồm:
 3. Đợt 2: nâng cấp để đạt yêu cầu đồ án (SQLite, làm sạch, học máy, giao diện).
 4. Những điểm còn tồn tại, cần nhóm quyết định.
 5. Các kiểm thử đã chạy.
+6. Giai đoạn 8: website GUI và chức năng cộng điểm.
+7. Đợt 3: thu thập trên website, review, sao lưu tải lên, giao diện mới (các lỗi tìm thấy và đã sửa).
 
 ---
 
 ## 1. Cách chạy
 
 Xem [README.md](../README.md). Tóm tắt:
-- Cài Python 3.9+, rồi nháy đúp `run.bat` (Windows) hoặc chạy `./run.sh` (macOS/Linux).
+- Cài Python 3.9+, rồi nháy đúp `run.bat` (Windows) hoặc chạy `./run.sh` (macOS/Linux). `run.*` tự tắt server cũ trước khi chạy.
 - Mở `http://127.0.0.1:5000/`, đăng nhập bằng `admin / Admin@123` hoặc `user / User@123`.
+- Tắt server: `stop.bat` / `./stop.sh`. Sau khi cập nhật code: `restart.bat` / `./restart.sh`.
 
 Không cần MySQL: CSDL là SQLite (`dataset/beautyprice.db`). Nếu chưa có file này, backend tự dựng lại từ `dataset/raw`.
 
@@ -108,9 +111,9 @@ Căn cứ đối chiếu là file hướng dẫn đồ án *LabF_CourseProject (
 | Mục | Yêu cầu | Trước đợt 2 | Sau đợt 2 |
 |---|---|---|---|
 | 2.1 | Phân tích đối tượng, thuộc tính, ràng buộc, quan hệ | Chỉ có các file CSV | ✅ ERD và từ điển dữ liệu: `reports/THIET_KE_CSDL.md` |
-| 2.1 | Thiết kế mô hình quan hệ | Không có | ✅ `source-code/pipeline/schema.sql`: 15 bảng, 2 view, khóa ngoại, CHECK, UNIQUE, chỉ mục |
+| 2.1 | Thiết kế mô hình quan hệ | Không có | ✅ `source-code/pipeline/schema.sql`: 17 bảng, 2 view, khóa ngoại, CHECK, UNIQUE, chỉ mục |
 | 2.1 | **Chọn hệ quản trị CSDL** | ❌ Lưu bằng CSV/JSON | ✅ **SQLite** (`dataset/beautyprice.db`), không cần cài đặt |
-| 2.1 | Công cụ thu thập đa nguồn (điểm cộng) | Không có code | ✅ `source-code/crawler/crawl.py`: 4 nguồn thu thập được, Watsons ghi nhận bị chặn (xem 3.7) |
+| 2.1 | Công cụ thu thập đa nguồn (điểm cộng) | Không có code | ✅ `source-code/crawler/crawl.py` + trang **Thu thập dữ liệu** (chạy nền, lịch tự động): giá 3 nguồn đang lấy được (Hasaki, Cocolux, Thế Giới Skin Food), review Hasaki + Cocolux; Guardian, Watsons bật chống bot nên chỉ ghi nhận `blocked` (xem 3.5, mục 7) |
 | 2.2 | **Chương trình làm sạch** | ❌ Không có | ✅ `build_database.py`: 24 bước, mỗi bước ghi vào `etl_log`, hiển thị ở trang Báo cáo |
 | 2.3 | Danh sách thống kê, min – max | Một phần | ✅ Trang Báo cáo: min–max theo danh mục, theo nhà bán lẻ, theo chỉ số |
 | 2.3 | Biểu đồ đa dạng | Chỉ có biểu đồ cột | ✅ 20 biểu đồ: cột, cột ngang, cột chồng 100%, doughnut, đường, scatter, bubble, heatmap (ma trận nhầm lẫn) |
@@ -128,7 +131,7 @@ Căn cứ đối chiếu là file hướng dẫn đồ án *LabF_CourseProject (
 
 ### 3.2. Cơ sở dữ liệu SQLite
 - **Lược đồ** (`schema.sql`):
-  - Bảng: `retailers`, `categories`, `products`, `product_categories` (quan hệ N-N), `price_snapshots`, `reviews`, `users`, `collection_logs`, `product_matching`, `etl_log`, cùng 5 bảng `ml_*`.
+  - Bảng: `retailers`, `categories`, `products`, `product_categories` (quan hệ N-N), `price_snapshots`, `reviews`, `review_links` (review dùng chung giữa biến thể), `users`, `app_settings` (lịch thu thập), `collection_logs`, `product_matching`, `etl_log`, cùng 5 bảng `ml_*`.
   - View: `v_latest_snapshot` (giá hiện tại) và `v_products`.
 - **Sửa một lỗi nghiệp vụ:** trước đây khi admin sửa giá, file JSON bị ghi đè nên **mất lịch sử giá**. Giờ mỗi lần đổi giá thêm một dòng `price_snapshots`, và trang Tra cứu có biểu đồ lịch sử giá.
 - **Tự dựng CSDL:** chưa có `beautyprice.db` thì backend tự chạy `build_database.py`. Đã thử trên một bản sao dự án không có CSDL.
@@ -154,18 +157,19 @@ Dữ liệu chia train/validation/test theo tỷ lệ 60/20/20 (random_state = 4
 
 | Bài toán | Mô hình chọn | Kết quả test | Bản cũ của nhóm |
 |---|---|---|---|
-| Hồi quy giá (học trên log giá) | Random Forest | MAE 86.783đ · RMSE 184.459đ · R² 0,597 · MAPE 33,1% | MAE 87.919đ · R² 0,652 |
-| Phân loại phân khúc giá | Random Forest | Accuracy 73,7% · F1-macro 0,736 | 73,9% · 0,734 |
-| Phân cụm | K-Means, k = 6 | Silhouette 0,297 | k = 7, silhouette 0,284 |
-| Bất thường | Isolation Forest, contamination 5% | 321 sản phẩm (5%) | 283 |
+| Hồi quy giá (học trên log giá) | Random Forest | MAE 90.290đ · RMSE 168.259đ · R² 0,536 · MAPE 35,2% | MAE 87.919đ · R² 0,652 |
+| Phân loại phân khúc giá | Extra Trees | Accuracy 73,5% · F1-macro 0,732 | 73,9% · 0,734 |
+| Phân cụm | K-Means, k = 7 | Silhouette 0,285 | k = 7, silhouette 0,284 |
+| Bất thường | Isolation Forest, contamination 5% | 283 sản phẩm (5%) | 283 |
 
-Kết quả trên đã gồm lần thu thập mới ngày 29/10 (6.413 sản phẩm). Trước khi thu thập thêm (5.657 sản phẩm), mô hình hồi quy chỉ đạt R² 0,536 và MAE 90.290đ. R² vẫn thấp hơn bản cũ: bản cũ dùng thêm đặc trưng `product_variant` và cách chia dữ liệu khác, nhưng code của bản cũ không còn nên không đối chiếu được. Nếu nhóm còn giữ notebook cũ thì có thể so sánh lại.
+Kết quả trên huấn luyện trên **dữ liệu gốc 5.657 sản phẩm** (nhóm chọn giữ đúng dữ liệu gốc cho EDA, mô hình và báo cáo; xem 3.5). Chi tiết: `reports/KET_QUA_MO_HINH.md`.
+R² thấp hơn bản cũ: bản cũ dùng thêm đặc trưng `product_variant` và cách chia dữ liệu khác, nhưng code của bản cũ không còn nên không đối chiếu được. Phân cụm và phát hiện bất thường cho kết quả trùng khớp với bản cũ (k = 7, 283 sản phẩm).
 
 ### 3.5. Công cụ thu thập đa nguồn: `crawler/crawl.py`
 
 - **Chỉ dùng thư viện chuẩn của Python.**
 - Đọc `robots.txt` (hỗ trợ ký tự đại diện `*`, `$`; luật khớp dài nhất thắng) và **không gửi yêu cầu bị cấm**.
-- Giãn cách 1,5 giây giữa các yêu cầu tới cùng một website; thử lại có giới hạn khi gặp lỗi 5xx hoặc mất kết nối.
+- Giãn cách giữa các yêu cầu tới cùng một website (mặc định 1,5 giây, không cho đặt dưới 1 giây); thử lại có giới hạn khi gặp lỗi 5xx hoặc mất kết nối.
 - User-Agent ghi rõ đây là công cụ của đồ án sinh viên.
 
 | Nguồn | Cách lấy dữ liệu | Kết quả lần chạy 29/10/2026 |
@@ -173,17 +177,22 @@ Kết quả trên đã gồm lần thu thập mới ngày 29/10 (6.413 sản ph�
 | Hasaki | API JSON `/mobile/v3/main/products` (website tự dùng) | 8 danh mục, 2.000 bản ghi |
 | Cocolux | API JSON `/Ajax/Content/PartialProduct` | 7 danh mục, 620 bản ghi |
 | Thế Giới Skin Food | Haravan `/collections/<handle>/products.json` | 7 danh mục, 535 bản ghi |
-| Guardian | Phân tích HTML trang danh mục Magento (`?p=N` được robots.txt cho phép) | 7 danh mục, 1.102 bản ghi |
+| Guardian | Phân tích HTML trang danh mục Magento (`?p=N` được robots.txt cho phép) | 7 danh mục, 1.102 bản ghi. **Từ chiều 29/10/2026 Guardian bật Cloudflare** (HTTP 403 "Just a moment…") → các lần sau ghi `blocked` |
 | Watsons | Akamai chặn truy cập tự động (HTTP 403) | Ghi `blocked` vào `collection_logs`, **không vượt rào chống bot** |
 
-- **Kết quả lần chạy:** 4.257 bản ghi, gộp lại còn 4.074 sản phẩm (có sản phẩm thuộc nhiều danh mục), chỉ dùng 154 yêu cầu HTTP.
-- **Nạp vào CSDL:**
-  - +4.074 snapshot giá và +756 sản phẩm mới.
-  - Số sản phẩm có từ 2 lần giá tăng từ 569 lên **3.767**; số sản phẩm thực sự đổi giá tăng từ 1 lên **1.081**.
-  - Biểu đồ lịch sử giá và xu hướng giá giờ có dữ liệu thật.
+- **Kết quả lần chạy:** 4.257 bản ghi, gộp lại còn 4.074 sản phẩm (có sản phẩm thuộc nhiều danh mục), chỉ dùng 154 yêu cầu HTTP. Lưu ở `dataset/crawl/crawl_20261029T120321/`.
+- **Quyết định giữ dữ liệu gốc:** CSDL mặc định **chỉ gồm dữ liệu gốc** (5.657 sản phẩm, 6.350 snapshot), khớp EDA và báo cáo. Lần chạy trên được giữ để truy vết; có 3 cách dùng:
+
+  | Cách | Sản phẩm | Snapshot giá |
+  |---|---:|---:|
+  | Mặc định (`build_database.py`) | 5.657 | 6.350 |
+  | Nạp lần thu thập, chỉ thêm giá cho sản phẩm đã có (mặc định của crawler) | 5.657 | 9.668 (+3.318) |
+  | `build_database.py --with-crawl` (thêm cả sản phẩm mới) | 6.413 | 10.424 |
+
+  Cả 3 cách đều qua `verify_database.py` (PASS).
 - **Nối dữ liệu mới với dữ liệu cũ:** mã sản phẩm dùng **đúng công thức của dữ liệu gốc**, `prod_ + sha256("<nhà bán lẻ>|<URL>")[:16]` (đã kiểm chứng bằng test). URL Guardian được bỏ `www.` để khớp dạng cũ.
 - **Truy vết:** mỗi lần chạy lưu ở `dataset/crawl/crawl_<thời điểm>/`, gồm dữ liệu thô (`raw/*.gz`), `snapshots.csv` và `collection_log.csv`.
-- **Dựng lại CSDL:** `build_database.py --force` tự nạp lại các lần thu thập này, nên không mất dữ liệu mới.
+- **Dựng lại CSDL:** `build_database.py --force --with-crawl` nạp lại các lần thu thập này (mặc định chỉ dựng từ `dataset/raw/`).
 - **Làm sạch khi thu thập:**
   - Loại bản ghi thiếu tên, link hoặc giá.
   - Bỏ giá niêm yết nhỏ hơn giá bán; tính lại % giảm.
@@ -202,25 +211,29 @@ Kết quả trên đã gồm lần thu thập mới ngày 29/10 (6.413 sản ph�
   - Dự đoán: so sánh mô hình, độ quan trọng đặc trưng, ma trận nhầm lẫn.
   - **Phát hiện bất thường** (trang mới).
   - Báo cáo: min–max, chất lượng dữ liệu, in/PDF, CSV.
+  - **Thu thập dữ liệu**, **Sao lưu & phục hồi** (Admin; xem mục 6 và 7).
+- Đợt 3 đổi sang giao diện mới đồng bộ với trang đăng nhập (xem mục 7).
 
 ### 3.7. Số dòng code hiện tại
 
 | Phần | Số dòng |
 |---|---:|
-| `backend/app.py` | 624 |
-| `pipeline/` (schema.sql + build_database.py + train_models.py) | 885 |
-| `frontend/` JS (common.js + 7 trang) | 2.737 |
-| `frontend/` HTML + CSS | 1.716 |
-| `crawler/crawl.py` | 549 |
-| `tests/` (test_api.py + test_crawler.py) | 165 |
+| `backend/app.py` | 1.056 |
+| `pipeline/` (schema.sql + build_database.py + train_models.py + verify_database.py + queries.sql) | 1.332 |
+| `frontend/` JS (common.js + 9 trang) | 3.252 |
+| `frontend/` HTML + CSS | 2.002 |
+| `crawler/crawl.py` | 902 |
+| `tests/` (test_api.py + test_backup.py + test_crawler.py) | 470 |
+
+(Số dòng đo ở cuối đợt 3.)
 
 ---
 
 ## 4. Còn tồn tại, cần nhóm quyết định
 
-1. **Watsons chặn truy cập tự động.** Công cụ chỉ ghi nhận trạng thái và không vượt rào. Dữ liệu Watsons trong CSDL vẫn là bản thu thập cũ (21/10).
-2. **Git:** đề bắt buộc vấn đáp dựa trên git. Nhóm cần tạo repo; mỗi thành viên commit phần mình phụ trách theo bảng phân công.
-3. **Nên chạy `crawl.py` định kỳ** (ví dụ mỗi tuần) để có thêm lịch sử giá, rồi chạy `train_models.py` để mô hình cập nhật cả sản phẩm mới. Cấu trúc website có thể thay đổi; khi đó cần sửa phần đọc dữ liệu của nguồn tương ứng trong `crawl.py`.
+1. **Watsons (Akamai) và Guardian (Cloudflare, từ 29/10/2026) chặn truy cập tự động.** Công cụ chỉ ghi nhận trạng thái `blocked`, không giải captcha hay vượt rào; robots.txt của Guardian còn cấm riêng `/review/`. Dữ liệu của 2 nguồn này là bản thu thập gốc. Hướng mở rộng hợp lệ: xin phép/API đối tác, hoặc thêm nhà bán lẻ cho phép thu thập (đã kiểm tra: Lam Thảo Cosmetics và Mint07 có API công khai, robots.txt cho phép).
+2. **Git:** repo `Mthu06/beautyprice-analytics` đã có commit của từng thành viên theo phần phụ trách. Đóng góp đang lệch (phần lớn commit của Mthu06); mỗi thành viên nên nắm chắc phần mình qua `reports/GIAI_THICH_CODE.md`. Email `pdat105206@gmail.com` cần được xác minh trên GitHub để commit hiện tên.
+3. **Nên bật lịch thu thập tự động** trên trang Thu thập dữ liệu (ví dụ mỗi ngày) để có thêm lịch sử giá, rồi chạy `train_models.py` để mô hình cập nhật. Cấu trúc website có thể thay đổi; khi đó cần sửa phần đọc dữ liệu của nguồn tương ứng trong `crawl.py`.
 4. **Dung lượng:**
    - `refs/_luu_tru/` (khoảng 93 MB) là bản trùng của cấu trúc cũ; **nên xóa trước khi nén nộp**.
    - `refs/ml_ket_qua_goc/` (khoảng 60 MB) chỉ để đối chiếu, cũng có thể bỏ.
@@ -233,19 +246,22 @@ Kết quả trên đã gồm lần thu thập mới ngày 29/10 (6.413 sản ph�
 
 ## 5. Kiểm thử đã chạy (đợt 2)
 
-- **`source-code/tests/test_crawler.py`** (4 nhóm, đều đạt, không cần mạng):
+- **`source-code/tests/test_crawler.py`** (8 test ở cuối đợt 3, đều đạt, không cần mạng):
   - Mã sản phẩm khớp dữ liệu gốc.
   - Luật robots.txt (`/*?` cấm, `/*?p=*` cho phép, `/*?p=*&*` cấm).
   - Bộ phân tích HTML Guardian: giá khuyến mãi, giá gốc, giá dạng chữ của combo, rating.
   - Bước làm sạch: gộp danh mục, giá niêm yết sai, bản ghi thiếu giá.
+  - Nạp review: nối review dùng chung giữa biến thể, chế độ chỉ bổ sung tên; review Cocolux (phân trang, header, rút gọn tên).
 - **Thu thập thật toàn bộ 5 nguồn**, nạp vào bản sao CSDL trước rồi mới nạp CSDL thật; không có lỗi khóa ngoại.
-- **Dựng lại CSDL từ đầu** cho ra đúng số liệu như khi nạp trực tiếp (6.413 sản phẩm, 10.424 snapshot).
+- **Dựng lại CSDL từ đầu** cho ra đúng số liệu như khi nạp trực tiếp: mặc định 5.657 sản phẩm / 6.350 snapshot; `--with-crawl` 6.413 / 10.424.
 
-- **`source-code/tests/test_api.py`** (4 nhóm, đều đạt):
+- **`source-code/tests/test_api.py`** (6 test ở cuối đợt 3, đều đạt):
   - Đăng nhập và phân quyền.
   - Các API đọc dữ liệu.
   - Kiểm tra dữ liệu đầu vào: nhà bán lẻ sai, giá niêm yết nhỏ hơn giá bán, giá ≤ 0, link `javascript:`, tên trống.
   - CRUD: đổi tên không sinh snapshot, đổi giá sinh snapshot, xóa thì xóa luôn các snapshot của sản phẩm.
+  - Review theo sản phẩm, số liệu công khai của trang đăng nhập, tùy chọn và lịch thu thập (không gọi mạng thật).
+- **`source-code/tests/test_backup.py`** (7 test): phục hồi thật có đối chiếu, tệp bị sửa bị từ chối, tải lên tệp hợp lệ / bản cũ / 7 loại tệp xấu.
 - **Chạy như trên máy mới,** trên bản sao dự án **không có CSDL**:
   - `run.bat` tự tạo `.venv`, cài Flask, rồi backend tự dựng CSDL từ `dataset/raw`.
   - Khi chưa huấn luyện, các trang mô hình báo "chưa có kết quả" mà không lỗi.
@@ -266,7 +282,7 @@ Kết quả trên đã gồm lần thu thập mới ngày 29/10 (6.413 sản ph�
 
 | Tiêu chí | Trạng thái | Bằng chứng |
 |---|---|---|
-| Sơ đồ màn hình và luồng người dùng | ✅ | `reports/SO_DO_MAN_HINH.md`: sơ đồ 8 màn hình, ma trận phân quyền, 4 luồng người dùng, wireframe |
+| Sơ đồ màn hình và luồng người dùng | ✅ | `reports/SO_DO_MAN_HINH.md`: sơ đồ 9 màn hình, ma trận phân quyền, luồng người dùng, wireframe |
 | Tích hợp dashboard, dữ liệu, kết quả mô hình | ✅ | Tổng quan, Phân khúc, Dự đoán, Bất thường (TC04, TC12–TC14) |
 | Đăng nhập, phân quyền | ✅ | Admin / User, backend chặn 403 (TC01–TC03, TC18–TC20) |
 | Tìm kiếm, lọc; CRUD; xuất báo cáo | ✅ | TC05–TC11, TC15; tệp xuất ở `reports/demo/exports/` |
@@ -282,9 +298,45 @@ Kết quả trên đã gồm lần thu thập mới ngày 29/10 (6.413 sản ph�
 | Trước khi phục hồi | So SHA-256 (tệp bị sửa thì từ chối, HTTP 409); kiểm tra toàn vẹn bản sao lưu; tự tạo bản an toàn `_truoc-phuc-hoi` từ dữ liệu hiện tại |
 | Phục hồi | Ghi bản sao lưu vào CSDL đang chạy bằng Backup API |
 | Sau khi phục hồi | Kiểm tra toàn vẹn, khóa ngoại, so số dòng 13 bảng với bản sao lưu; hiển thị bảng kết quả Khớp / Lệch |
+| Tải lên (đợt 3) | Nhận tệp `.db` từ máy khác: phải đúng định dạng SQLite, đủ 13 bảng và các cột, không có view/trigger lạ, có tài khoản Admin, qua `integrity_check`. Tệp hợp lệ thành một bản sao lưu (đuôi `_tai-len`); phục hồi vẫn đi qua các bước trên. Bản sao lưu cũ thiếu cột mới được tự bổ sung sau phục hồi |
 | Bảo mật | Chỉ Admin; tên tệp kiểm tra bằng regex nên không truy cập được tệp ngoài thư mục `dataset/backups/` |
 
 - **Kiểm thử bằng code** (`test_backup.py`): sao lưu → xóa, thêm và sửa giá sản phẩm → phục hồi. Sau đó đối chiếu **độc lập**: số dòng từng bảng và giá mới nhất của từng sản phẩm đều trùng khớp với lúc sao lưu.
 - **Kiểm thử trên giao diện** (TC17): xóa 1 sản phẩm → phục hồi → 13/13 bảng khớp, và sản phẩm đã xóa xuất hiện lại.
 
 **Lưu ý trung thực:** tiêu chí ghi "vẽ sơ đồ **trước khi** lập trình". Tài liệu sơ đồ hiện có được lập sau, dựa trên website đã hoàn thiện. Nếu nhóm có bản phác thảo ban đầu (giấy, Figma...), nên đính kèm thêm vào `reports/`.
+
+---
+
+## 7. Đợt 3: thu thập trên website, review, sao lưu tải lên, giao diện mới
+
+### 7.1. Chức năng mới
+
+| Chức năng | Mô tả |
+|---|---|
+| Trang **Thu thập dữ liệu** (Admin) | Gọi `crawl.run()` chạy nền (thread), nhật ký cập nhật mỗi 2 giây, nút Dừng; tự nhập lượng dữ liệu (số trang, số sản phẩm/trang review, giãn cách ≥ 1 giây), mẫu nhanh, ước tính thời gian; **lịch tự động** (chu kỳ giờ/ngày, giờ chạy lần đầu, lưu ở `app_settings`); lịch sử các lần chạy |
+| Review | Tên người đánh giá dạng rút gọn; review **Cocolux** qua API công khai; ưu tiên sản phẩm còn thiếu review; trang Tra cứu chỉ tải review của sản phẩm đang xem |
+| Sao lưu | **Tải lên** tệp `.db` để phục hồi bản dữ liệu khác (xem mục 6) |
+| Giao diện | Trang đăng nhập mới (số liệu thật từ `/api/public-stats`); sidebar nổi, banner đầu trang nền tối, thẻ/ô nhập bo tròn đồng bộ ở mọi trang |
+| Vận hành | `stop.*`, `restart.*`; `run.*` tự tắt server cũ |
+
+### 7.2. Lỗi tìm thấy và đã sửa
+
+| # | Mức | Lỗi | Hậu quả | Đã sửa |
+|---|---|---|---|---|
+| R1 | 🟠 | Website hiện cùng một review trên mọi biến thể, nhưng review chỉ gắn vào 1 biến thể; crawler còn mặc định không thêm review mới | Nhiều sản phẩm có lượt đánh giá trên website mà trang Tra cứu trống (Hasaki: 631 sản phẩm thiếu) | Bảng `review_links` nối review với các biến thể (review vẫn lưu 1 lần, thống kê không đếm trùng); mặc định thêm review mới cho sản phẩm đã có. Lần bù thử: 28.138 review thu được → 718 review mới, 22.859 liên kết biến thể, bổ sung tên 4.805 review |
+| R2 | 🟡 | Truy vấn Q6 dùng `SUM(is_bought = 1)`: nguồn mà mọi review đều không có thông tin "đã mua" (Cocolux) trả **NULL** thay vì 0 | Kiểm tra CSDL báo FAIL, số liệu thống kê sai | `SUM(CASE WHEN is_bought = 1 THEN 1 ELSE 0 END)` |
+| R3 | 🟡 | Trang đăng nhập ghi cứng "5.657 sản phẩm, 6.673 đánh giá" | Lệch ngay khi dữ liệu thay đổi | Lấy từ `/api/public-stats` (chỉ số tổng, không lộ dữ liệu chi tiết) |
+| R4 | 🟡 | Windows cho 2 server mở trùng cổng 5000; chạy `run.bat` lần 2 khi cửa sổ cũ còn mở | Trang lúc gọi code mới, lúc gọi code cũ, báo thiếu `/api/crawl` | `run.*` tự tắt server cũ; `app.py` dừng kèm hướng dẫn nếu cổng đã có server; API không tồn tại trả mã `API_NOT_FOUND` và giao diện hướng dẫn khởi động lại |
+| R5 | 🟡 | Trang Tra cứu và Báo cáo tải **toàn bộ** review về trình duyệt | Chậm dần khi số review tăng | `/api/reviews?product_id=`, `/api/reviews/counts`, `?fields=stats` |
+| R6 | ⚪ | Tên nhà bán lẻ "The Gioi Skin Food" không dấu trên mọi biểu đồ | Hiển thị sai tên thương hiệu | Đổi tên hiển thị khi dựng CSDL |
+| R7 | ⚪ | `verify_database.py` không nhận lần chạy chỉ lấy review; chống trùng review khác crawler | Có thể báo FAIL sai sau khi thu thập review | Đọc cả bước `(review)` trong `etl_log`; chống trùng theo (nguồn, `review_id`) giống crawler |
+| R8 | ⚪ | Tên tài khoản dạng `_abc123` bị rút gọn thành `_***` | Tên hiển thị khó hiểu | Lấy ký tự chữ/số đầu tiên |
+
+### 7.3. Đánh giá công cụ `crawl_guardian_updated.py` (do ChatGPT viết, nhóm đưa vào xem xét)
+
+Không tích hợp, vì:
+1. Sửa sai bộ đọc robots.txt (`replace(r"**\\***", ...)`), nên luật có `*` (VD `Disallow: /*?`) không còn khớp, ảnh hưởng **mọi nguồn**.
+2. Gọi `/review/product/listAjax/...`, đường dẫn robots.txt của Guardian cấm (`Disallow: /review/`) và bị Cloudflare chặn.
+3. Chế độ đọc HTML đã lưu gán review của 1 sản phẩm cho **toàn bộ** sản phẩm Guardian.
+4. `run()` nhận tham số mới nhưng không gọi hàm nào; hàm nạp không ghi `etl_log` và không kiểm tra sản phẩm tồn tại.

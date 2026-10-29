@@ -2,8 +2,8 @@
 
 - **Script:** [`source-code/pipeline/train_models.py`](../source-code/pipeline/train_models.py).
 - **Mô hình đã lưu:** `dataset/models/*.joblib`.
-- **Kết quả chi tiết:** các bảng `ml_*` trong `dataset/beautyprice.db`.
-- **Lần huấn luyện:** 29/10/2026, trên **6.413 sản phẩm** (giá mới nhất của mỗi sản phẩm, gồm cả lần thu thập 29/10).
+- **Kết quả chi tiết:** các bảng `ml_*` trong `dataset/beautyprice.db` (website đọc trực tiếp các bảng này).
+- **Lần huấn luyện:** 29/10/2026, trên **5.657 sản phẩm** của dữ liệu gốc (giá mới nhất của mỗi sản phẩm, thu thập 18–21/10/2026).
 
 ---
 
@@ -31,9 +31,9 @@ Mọi bài toán đều dựa trên các trường có thật trong dữ liệu 
 | `volume_ml_log`, `weight_g_log`, `pack_count`, `is_combo` | Số | **Trích từ tên sản phẩm** (ví dụ "400ml", "800g", "Bộ 3 món", "Combo") |
 
 - **Không** dùng giá niêm yết hay % giảm làm đầu vào, vì chúng suy ra trực tiếp từ giá (rò rỉ mục tiêu).
-- **Hồi quy** học trên **log(giá)** vì giá lệch phải mạnh (trung bình 314 nghìn, trung vị 245 nghìn, tối đa 3,16 triệu). Kết quả được đổi về VNĐ khi đánh giá. Đã thử học thẳng trên giá gốc: kém hơn ở mọi chỉ số trên tập validation (MAE 96.692 so với 94.340; R² 0,567 so với 0,601 trong lần thử trên dữ liệu 5.657 sản phẩm).
-- **Phân khúc giá:** ngưỡng là phân vị 1/3 và 2/3 của **tập train**: Thấp ≤ 173.000đ < Trung bình ≤ 349.000đ < Cao.
-- **Chia dữ liệu:** train / validation / test = **60 / 20 / 20** (3.847 / 1.283 / 1.283), `random_state = 42`.
+- **Hồi quy** học trên **log(giá)** vì giá lệch phải mạnh (trung bình 312.928đ, trung vị 240.000đ, tối đa 3,16 triệu). Dự đoán được đổi lại về VNĐ (`exp`) trước khi tính sai số. Đã thử học thẳng trên giá gốc trong một lần thử nghiệm riêng trên cùng 5.657 sản phẩm: kém hơn ở mọi chỉ số trên tập validation (MAE 96.692 so với 94.340; R² 0,567 so với 0,601).
+- **Phân khúc giá:** ngưỡng là phân vị 1/3 và 2/3 của **tập train** (tính trên train rồi mới áp cho validation/test để tránh rò rỉ): Thấp ≤ 169.000đ < Trung bình ≤ 347.000đ < Cao.
+- **Chia dữ liệu:** train / validation / test = **60 / 20 / 20** (3.393 / 1.132 / 1.132 sản phẩm), `random_state = 42`.
   - Chọn mô hình trên tập **validation**.
   - Huấn luyện lại mô hình được chọn trên train + validation.
   - Báo cáo kết quả **một lần** trên tập **test**.
@@ -44,78 +44,82 @@ Mọi bài toán đều dựa trên các trường có thật trong dữ liệu 
 
 | Mô hình | MAE (VNĐ) | RMSE (VNĐ) | R² | MAPE |
 |---|---:|---:|---:|---:|
-| **Baseline**: Dummy (dự đoán trung vị) | 172.956 | 291.999 | −0,057 | 89,2% |
-| Ridge Regression | 104.161 | 198.262 | 0,513 | 47,2% |
-| **Random Forest** ★ được chọn | **95.872** | **194.280** | **0,532** | **38,4%** |
-| Extra Trees | 99.028 | 209.080 | 0,458 | 39,2% |
+| **Baseline**: Dummy (dự đoán trung vị) | 171.288 | 289.568 | −0,057 | 87,9% |
+| Ridge Regression | 109.613 | 198.900 | 0,501 | 47,4% |
+| **Random Forest** ★ được chọn | **94.089** | **177.891** | **0,601** | **39,2%** |
+| Extra Trees | 99.220 | 192.800 | 0,531 | 45,0% |
 
-**Random Forest trên tập test: MAE 86.783đ · RMSE 184.459đ · R² 0,597 · MAPE 33,1%.** So với baseline, sai số trung bình giảm khoảng 50%.
+**Random Forest trên tập test: MAE 90.290đ · RMSE 168.259đ · R² 0,536 · MAPE 35,2%.** So với baseline, sai số tuyệt đối trung bình giảm khoảng 45%.
 
 Sai số theo phân khúc giá thực tế (tập test):
 
 | Phân khúc | Số sản phẩm | Sai số % trung bình |
 |---|---:|---:|
-| Thấp (≤ 173k) | 440 | 52,8% |
-| Trung bình | 421 | **21,1%** |
-| Cao (> 349k) | 422 | 24,5% |
+| Thấp (≤ 169k) | 386 | 55,8% |
+| Trung bình | 377 | **22,6%** |
+| Cao (> 347k) | 369 | 26,6% |
 
 ### 3.2. Phân loại phân khúc giá (tập validation)
 
 | Mô hình | Accuracy | Precision (macro) | Recall (macro) | F1 (macro) |
 |---|---:|---:|---:|---:|
-| **Baseline**: Dummy (lớp phổ biến) | 0,330 | 0,110 | 0,333 | 0,166 |
-| Logistic Regression | 0,673 | 0,667 | 0,673 | 0,667 |
-| **Random Forest** ★ được chọn | **0,684** | **0,678** | **0,682** | **0,677** |
-| Extra Trees | 0,682 | 0,676 | 0,681 | 0,676 |
+| **Baseline**: Dummy (lớp phổ biến) | 0,346 | 0,115 | 0,333 | 0,172 |
+| Logistic Regression | 0,672 | 0,667 | 0,673 | 0,667 |
+| Random Forest | 0,695 | 0,690 | 0,696 | 0,690 |
+| **Extra Trees** ★ được chọn | **0,704** | **0,701** | **0,705** | **0,700** |
 
-**Random Forest trên tập test: Accuracy 73,7% · F1-macro 0,736.**
+**Extra Trees trên tập test: Accuracy 73,5% · Precision 0,732 · Recall 0,735 · F1-macro 0,732.**
 
 Ma trận nhầm lẫn (tập test; hàng là thực tế, cột là dự đoán):
 
 | Thực tế \ Dự đoán | Thấp | Trung bình | Cao | Recall |
 |---|---:|---:|---:|---:|
-| **Thấp** | **349** | 72 | 19 | 79,3% |
-| **Trung bình** | 71 | **266** | 84 | 63,2% |
-| **Cao** | 25 | 66 | **331** | 78,4% |
+| **Thấp** | **303** | 66 | 17 | 78,5% |
+| **Trung bình** | 76 | **225** | 76 | 59,7% |
+| **Cao** | 17 | 48 | **304** | 82,4% |
 
 ### 3.3. Phân cụm K-Means
 
-- **Đặc trưng:** log(giá), % giảm, rating, log(số lượt đánh giá), số danh mục; cùng danh mục, loại sản phẩm, nhà bán lẻ (one-hot).
+- **Đặc trưng:** log(giá), % giảm, rating, log(số lượt đánh giá), số danh mục; cùng danh mục, loại sản phẩm, nhà bán lẻ (one-hot, gom nhóm hiếm < 20).
 - **Chuẩn hóa:** StandardScaler.
-- **Chọn k:** thử k = 2…10, chọn theo **silhouette** (tính trên mẫu 3.000 điểm). **k = 6** có silhouette cao nhất, **0,297**.
-- **Số sản phẩm mỗi cụm:** 804 / 1.131 / 2.770 / 565 / 1.033 / 110.
+- **Chọn k:** thử k = 2…10, chọn theo **silhouette** (tính trên mẫu 3.000 điểm):
+
+| k | 2 | 3 | 4 | 5 | 6 | **7** | 8 | 9 | 10 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Silhouette | 0,210 | 0,232 | 0,250 | 0,274 | 0,273 | **0,285** | 0,277 | 0,272 | 0,222 |
+
+- **k = 7** được chọn. Số sản phẩm mỗi cụm (cụm 0 → 6): 931 / 1.728 / 864 / 783 / 528 / 725 / 98. Trang **Phân khúc** hiển thị đặc điểm từng cụm (giá trung vị, mức giảm, rating, danh mục và nhà bán lẻ nổi bật).
 
 ### 3.4. Phát hiện bất thường — Isolation Forest
 
-- **Đặc trưng:** log(giá), giá so với trung vị danh mục, % giảm, tỷ lệ niêm yết/bán, rating, log(số lượt đánh giá).
-- **Kết quả:** với contamination 5% (300 cây), mô hình đánh dấu **321 / 6.413** sản phẩm.
-- **Lý do bất thường:** mỗi sản phẩm được gắn 1–2 đặc trưng lệch nhiều nhất (|z| ≥ 1,5).
+- **Đặc trưng:** log(giá), giá so với trung vị danh mục, % giảm, tỷ lệ niêm yết/bán, rating, log(số lượt đánh giá); điền trung vị + StandardScaler.
+- **Kết quả:** với contamination 5% (300 cây), mô hình đánh dấu **283 / 5.657** sản phẩm (5,0%): Hasaki 254, Guardian 16, Thế Giới Skin Food 8, Cocolux 5. Phần lớn là hàng cận date / xả kho của Hasaki (giá bán rất thấp so với giá niêm yết).
+- **Lý do bất thường:** mỗi sản phẩm được gắn 1–2 đặc trưng lệch nhiều nhất (|z| ≥ 1,5), ví dụ "Giá niêm yết cao bất thường; Giảm giá rất sâu".
 
 Độ nhạy theo tham số contamination:
 
 | Contamination | Số sản phẩm bị đánh dấu |
 |---:|---:|
-| 2% | 129 |
-| **5%** (đang dùng) | **321** |
-| 8% | 513 |
+| 2% | 114 |
+| **5%** (đang dùng) | **283** |
+| 8% | 453 |
 
 ## 4. Giải thích kết quả
 
-- **Thương hiệu là yếu tố quyết định giá:** chiếm 39% độ quan trọng ở mô hình hồi quy và 41% ở mô hình phân loại. Tiếp theo là **dung tích** (26% / 19%) và **danh mục** (12% / 13%). Kết quả này hợp lý: cùng một danh mục, giá chủ yếu khác nhau theo thương hiệu và quy cách.
+- **Thương hiệu là yếu tố quyết định giá:** chiếm 38% độ quan trọng ở mô hình hồi quy và 46% ở mô hình phân loại. Tiếp theo là **dung tích** (26% / 13%) và **danh mục** (12% / 16%). Kết quả này hợp lý: cùng một danh mục, giá chủ yếu khác nhau theo thương hiệu và quy cách.
 - **Rating và số lượt đánh giá gần như không giúp dự đoán giá** (< 3%). Mức độ được đánh giá cao không gắn với giá đắt hay rẻ.
-- **Hàng giá rẻ khó dự đoán theo tỷ lệ phần trăm** (sai số 52,8%): sai lệch 50k trên sản phẩm 80k đã là hơn 60%. Nhóm trung bình và cao chính xác hơn nhiều (khoảng 21–25%).
-- **Phân loại nhầm chủ yếu giữa 2 nhóm cạnh nhau** (Thấp ↔ Trung bình, Trung bình ↔ Cao). Chỉ có 44/1.283 trường hợp nhầm Thấp ↔ Cao. Nhóm Trung bình khó nhất (recall 63%) vì nằm giữa 2 ngưỡng.
-- **Silhouette khoảng 0,3 nghĩa là các cụm có chồng lấn:** thị trường mỹ phẩm không chia thành những nhóm tách bạch. Các cụm nên dùng để mô tả xu hướng, không phải ranh giới cứng.
+- **Hàng giá rẻ khó dự đoán theo tỷ lệ phần trăm** (sai số 55,8%): sai lệch 50k trên sản phẩm 80k đã là hơn 60%. Nhóm trung bình và cao chính xác hơn nhiều (khoảng 23–27%).
+- **Phân loại nhầm chủ yếu giữa 2 nhóm cạnh nhau** (Thấp ↔ Trung bình, Trung bình ↔ Cao). Chỉ có 34/1.132 trường hợp nhầm Thấp ↔ Cao. Nhóm Trung bình khó nhất (recall 60%) vì nằm giữa 2 ngưỡng.
+- **Silhouette khoảng 0,28 nghĩa là các cụm có chồng lấn:** thị trường mỹ phẩm không chia thành những nhóm tách bạch. Các cụm nên dùng để mô tả xu hướng, không phải ranh giới cứng.
 
 ## 5. Hạn chế
 
-1. **Dữ liệu ngắn hạn:** chỉ có 5 ngày thu thập (18–21/10 và 29/10/2026). Chưa đủ để mô hình hóa biến động giá theo thời gian hay theo mùa khuyến mãi.
-2. **Thiếu đặc trưng quan trọng:** thành phần, công dụng, xuất xứ, kênh (chính hãng hay xách tay) không có trong dữ liệu. Dung tích/khối lượng trích từ tên sản phẩm: 7,7% sản phẩm không có cả hai, và cách trích bằng quy tắc có thể đọc nhầm với tên combo.
-3. **Rating thiếu nhiều:** 74,6% sản phẩm không có rating (rating = 0 được coi là chưa có; Thế Giới Skin Food không công khai rating).
-4. **Watsons không được cập nhật ngày 29/10** (website chặn truy cập tự động), nên dữ liệu Watsons cũ hơn các nhà bán lẻ khác.
-5. **Cùng một sản phẩm ở nhiều nhà bán lẻ chưa được đối chiếu** (`product_matching` mới là ứng viên). Sản phẩm trùng có thể nằm ở cả train lẫn test, làm kết quả hơi lạc quan.
-6. **R² test (0,597) thấp hơn bản cũ của nhóm (0,652).** Bản cũ dùng thêm đặc trưng `product_variant` và cách chia khác, nhưng code bản cũ không còn nên không đối chiếu được.
-7. **Isolation Forest chỉ ra sản phẩm "cần rà soát",** không khẳng định dữ liệu sai. Tỷ lệ 5% là giả định, không phải số đo.
+1. **Dữ liệu ngắn hạn:** dữ liệu gốc chỉ có 4 ngày thu thập (18–21/10/2026). Chưa đủ để mô hình hóa biến động giá theo thời gian hay theo mùa khuyến mãi. Công cụ thu thập (trang **Thu thập dữ liệu**, có lịch tự động) cho phép kéo dài lịch sử giá để huấn luyện lại sau.
+2. **Thiếu đặc trưng quan trọng:** thành phần, công dụng, xuất xứ, kênh (chính hãng hay xách tay) không có trong dữ liệu. Dung tích/khối lượng trích từ tên sản phẩm: 6,2% sản phẩm không có cả hai, và cách trích bằng quy tắc có thể đọc nhầm với tên combo.
+3. **Rating thiếu nhiều:** 65,5% sản phẩm không có rating (rating = 0 được coi là chưa có; Thế Giới Skin Food không công khai rating).
+4. **Cùng một sản phẩm ở nhiều nhà bán lẻ chưa được đối chiếu** (`product_matching` mới là ứng viên). Sản phẩm trùng có thể nằm ở cả train lẫn test, làm kết quả hơi lạc quan.
+5. **R² test (0,536) thấp hơn validation (0,601):** chênh lệch do chia ngẫu nhiên một lần trên dữ liệu không lớn; con số test là con số báo cáo chính thức.
+6. **Isolation Forest chỉ ra sản phẩm "cần rà soát",** không khẳng định dữ liệu sai. Tỷ lệ 5% là giả định, không phải số đo.
 
 ## 6. Pipeline, tham số và cách chạy lại
 
@@ -136,8 +140,8 @@ python train_models.py        # đọc dataset/beautyprice.db, ghi lại bảng 
 - **Dùng mô hình đã lưu:**
   ```python
   import joblib
-  model = joblib.load("dataset/models/price_regressor.joblib")
   import numpy as np
+  model = joblib.load("dataset/models/price_regressor.joblib")
   gia = np.exp(model.predict(df))   # mô hình dự đoán log(giá)
   ```
   Trong đó `df` có đúng các cột ở mục 2.

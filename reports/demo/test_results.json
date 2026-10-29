@@ -1,6 +1,6 @@
 {
-  "run_at": "2026-10-29T05:25:05.998Z",
-  "base": "http://127.0.0.1:5162",
+  "run_at": "2026-10-29T09:10:52.657Z",
+  "base": "http://127.0.0.1:5300",
   "page_errors": [],
   "results": [
     {
@@ -39,7 +39,7 @@
       "name": "Lọc dashboard theo nhà bán lẻ",
       "steps": "Chọn Nhà bán lẻ = Hasaki",
       "expected": "KPI Tổng sản phẩm bằng số sản phẩm Hasaki trong CSDL",
-      "actual": "KPI = 1.874, CSDL = 1.874",
+      "actual": "KPI = 1.767, CSDL = 1.767",
       "pass": true,
       "shot": "screens/04_tong_quan_loc_hasaki.png"
     },
@@ -49,7 +49,7 @@
       "name": "Tìm kiếm không dấu",
       "steps": "Gõ \"kem chong nang\" vào ô tìm kiếm",
       "expected": "Có kết quả; sản phẩm khớp từ khóa trên tên/thương hiệu/danh mục, không phân biệt dấu (dòng đầu chứa \"kem chống nắng\")",
-      "actual": "Hiển thị 1–50 / 1.274 sản phẩm (lọc từ 6.413); dòng đầu: \"[50g] Kem Chống Nắng The Saem Kiềm Dầu, Nâng Tone Cho Da Sáng Hồng Pink Sun Cream EX SPF50+/PA++++\"",
+      "actual": "Hiển thị 1–50 / 1.089 sản phẩm (lọc từ 5.657); dòng đầu: \"[50g] Kem Chống Nắng The Saem Kiềm Dầu, Nâng Tone Cho Da Sáng Hồng Pink Sun Cream EX SPF50+/PA++++\"",
       "pass": true,
       "shot": "screens/05_tra_cuu_tim_kiem.png"
     },
@@ -59,7 +59,7 @@
       "name": "Xem chi tiết và lịch sử giá",
       "steps": "Tìm một sản phẩm đã đổi giá giữa các lần thu thập → bấm tên sản phẩm",
       "expected": "Mở cửa sổ chi tiết, biểu đồ Lịch sử giá có từ 2 điểm trở lên",
-      "actual": "Sản phẩm \"[HSD 01/2027] Gel Rửa Mặt I'm from Từ Ngải Cứu Sạc\": biểu đồ có 2 điểm",
+      "actual": "Sản phẩm \"Bộ Sản Phẩm Axis-Y Mờ Thâm Bật Sáng Chống Nắng 2 M\": biểu đồ có 2 điểm",
       "pass": true,
       "shot": "screens/06_chi_tiet_lich_su_gia.png"
     },
@@ -79,7 +79,7 @@
       "name": "Thêm sản phẩm hợp lệ",
       "steps": "Sửa giá niêm yết thành 250.000 → Lưu",
       "expected": "Thông báo thêm thành công, % giảm tự tính = 20%, tổng sản phẩm tăng 1",
-      "actual": "\"Thêm sản phẩm thành công!\", % giảm hiển thị: 20%, tổng 6413 → 6414",
+      "actual": "\"Thêm sản phẩm thành công!\", % giảm hiển thị: 20%, tổng 5657 → 5658",
       "pass": true,
       "shot": "screens/08_them_san_pham_ok.png"
     },
@@ -109,7 +109,7 @@
       "name": "Xuất CSV danh sách đang lọc",
       "steps": "Ở trang Tra cứu, tìm \"serum\" → Xuất CSV",
       "expected": "Tải về tệp CSV có dòng tiêu đề và đúng số sản phẩm đang lọc",
-      "actual": "Tệp tra-cuu-san-pham-2026-10-29.csv: 1542 dòng dữ liệu; trên trang: Hiển thị 1–50 / 1.542 sản phẩm (lọc từ 6.413)",
+      "actual": "Tệp tra-cuu-san-pham-2026-10-29.csv: 1340 dòng dữ liệu; trên trang: Hiển thị 1–50 / 1.340 sản phẩm (lọc từ 5.657)",
       "pass": true,
       "shot": "screens/11_xuat_csv_tra_cuu.png"
     },
@@ -149,7 +149,7 @@
       "name": "Báo cáo thống kê: xuất CSV và PDF",
       "steps": "Mở Báo cáo → Xuất CSV; In / Lưu PDF",
       "expected": "Tải về CSV nhiều phần; tạo được PDF báo cáo",
-      "actual": "CSV: bao-cao-thong-ke-2026-10-29.csv; PDF: bao_cao_thong_ke.pdf (404 KB)",
+      "actual": "CSV: bao-cao-thong-ke-2026-10-29.csv; PDF: bao_cao_thong_ke.pdf (401 KB)",
       "pass": true,
       "shot": "screens/15_bao_cao.png"
     },
@@ -159,7 +159,7 @@
       "name": "Tạo bản sao lưu",
       "steps": "Admin mở Sao lưu & phục hồi → Tạo bản sao lưu",
       "expected": "Bản sao lưu mới xuất hiện, kiểm tra toàn vẹn = Toàn vẹn, số dòng khớp CSDL hiện tại",
-      "actual": "\"Đã sao lưu và kiểm tra bản sao: beautyprice_20261029T122434.db\"; số bản: 0 → 1; integrity=ok; số dòng khớp hiện tại: true",
+      "actual": "\"Đã sao lưu và kiểm tra bản sao: beautyprice_20261029T161016.db\"; số bản: 0 → 1; integrity=ok; số dòng khớp hiện tại: true",
       "pass": true,
       "shot": "screens/16_sao_luu.png"
     },
@@ -169,7 +169,7 @@
       "name": "Phục hồi thực tế sau khi dữ liệu bị thay đổi",
       "steps": "Xóa 1 sản phẩm (giả lập mất dữ liệu) → Phục hồi bản vừa sao lưu → Xác nhận",
       "expected": "Kết quả kiểm tra \"khớp 100%\" ở cả 13 bảng; sản phẩm đã xóa xuất hiện lại",
-      "actual": "Đã xóa trước khi phục hồi: true; kết quả: \"Đã kiểm tra: khớp 100%\" (13 bảng); sản phẩm \"[HSD 01/2027] Sữa Rửa Mặt B.O.M Từ 8 Loạ\" có lại: true",
+      "actual": "Đã xóa trước khi phục hồi: true; kết quả: \"Đã kiểm tra: khớp 100%\" (13 bảng); sản phẩm \"[HSD 01/2027] Sữa Rửa Mặt Paula’s Choice\" có lại: true",
       "pass": true,
       "shot": "screens/17b_ket_qua_phuc_hoi.png"
     },

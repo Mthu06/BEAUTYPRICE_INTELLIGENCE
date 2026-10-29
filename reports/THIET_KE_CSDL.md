@@ -9,8 +9,8 @@
 | Tiêu chí | SQLite |
 |---|---|
 | Cài đặt | Không cần cài. Python có sẵn module `sqlite3`. |
-| Mang sang máy khác | Toàn bộ CSDL là 1 file (khoảng 9,6 MB). Chép thư mục dự án là chạy được. |
-| Đủ cho bài toán | Khoảng 5,7 nghìn sản phẩm, 6,4 nghìn snapshot giá, 6,7 nghìn review, 1–2 người dùng ghi đồng thời. |
+| Mang sang máy khác | Toàn bộ CSDL là 1 file (khoảng 9,3 MB). Chép thư mục dự án là chạy được. |
+| Đủ cho bài toán | 5.657 sản phẩm, 6.350 snapshot giá, 6.673 review (dữ liệu gốc), 1–2 người dùng ghi đồng thời. |
 | Tính năng CSDL quan hệ | Khóa chính, khóa ngoại (`ON DELETE CASCADE / SET NULL`), `CHECK`, `UNIQUE`, chỉ mục, view, hàm cửa sổ (`ROW_NUMBER`), transaction. |
 | Chuyển sang MySQL/PostgreSQL | Lược đồ dùng SQL chuẩn. Chỉ cần đổi kiểu `AUTOINCREMENT`, cú pháp `strftime` và phần kết nối trong `app.py`. |
 
@@ -25,6 +25,8 @@ erDiagram
     products ||--|{ price_snapshots : "lịch sử giá"
     products ||--o{ reviews : "được đánh giá"
     retailers ||--o{ reviews : "nguồn"
+    reviews ||--o{ review_links : "dùng chung"
+    products ||--o{ review_links : "biến thể"
     retailers ||--o{ collection_logs : "lần thu thập"
     products ||--o{ product_matching : "ứng viên đối chiếu"
     products ||--o| ml_price_predictions : "dự đoán giá"
@@ -88,6 +90,11 @@ erDiagram
         TEXT review_date
         INTEGER is_bought
         INTEGER has_images
+        TEXT reviewer_name
+    }
+    review_links {
+        TEXT product_id PK,FK
+        INTEGER review_pk PK,FK
     }
     collection_logs {
         TEXT run_id PK
@@ -123,14 +130,15 @@ erDiagram
 
 Các bảng không có quan hệ khóa ngoại:
 - `users`: tài khoản và vai trò.
-- `etl_log`: nhật ký làm sạch dữ liệu.
+- `app_settings`: cấu hình hệ thống dạng khóa – giá trị JSON (hiện dùng cho lịch thu thập tự động).
+- `etl_log`: nhật ký làm sạch dữ liệu và các lần nạp dữ liệu thu thập.
 - `ml_runs`: các lần huấn luyện, tham số và chỉ số đánh giá.
 - `ml_feature_importance`: độ quan trọng của đặc trưng.
 
 ## 3. Từ điển dữ liệu và quy tắc nghiệp vụ
 
 ### retailers — nhà bán lẻ (5 dòng)
-Gồm Cocolux, Guardian, Hasaki, The Gioi Skin Food, Watsons. Khóa `retailer_id` là chuỗi viết thường, ví dụ `hasaki`.
+Gồm Cocolux, Guardian, Hasaki, Thế Giới Skin Food, Watsons. Khóa `retailer_id` là chuỗi viết thường, ví dụ `hasaki`. CSV gốc ghi tên không dấu "The Gioi Skin Food"; bước nạp đổi sang tên hiển thị có dấu.
 
 ### categories — danh mục (6 dòng)
 Gồm Kem chống nắng, Serum, Sữa rửa mặt, Sữa tắm, Tẩy trang, Tẩy tế bào chết. Tên danh mục là `UNIQUE`.
@@ -140,7 +148,7 @@ Mỗi dòng là **một sản phẩm tại một nhà bán lẻ**. Cùng một s
 
 | Cột | Kiểu | Ràng buộc / quy tắc |
 |---|---|---|
-| `product_id` | TEXT | Khóa chính |
+| `product_id` | TEXT | Khóa chính: `prod_` + 16 ký tự đầu của SHA-256(`<nhà bán lẻ>|<URL>`). Cùng công thức cho dữ liệu gốc và crawler, nên lần thu thập sau tự nối đúng sản phẩm cũ |
 | `retailer_id` | TEXT | Khóa ngoại → `retailers`, bắt buộc |
 | `product_name` | TEXT | Bắt buộc, 1–300 ký tự. Đã chuẩn Unicode NFC, bỏ ký tự vô hình, gộp khoảng trắng |
 | `brand` | TEXT | Bắt buộc. Các cách viết khác hoa/thường được gộp về cách viết phổ biến nhất |
@@ -168,11 +176,22 @@ Mỗi lần thu thập, hoặc mỗi lần admin đổi giá, sinh **một dòng
 - `rating` nằm trong khoảng 1–5 và **giữ nửa sao** (Guardian có các mức 4.5, 3.5, 2.5).
 - `review_date` được chuẩn hóa về ISO 8601 từ 2 định dạng gốc: "2025-09-27 17:17:59" và "22 tháng 4, 2025". Giá trị gốc được giữ ở `review_date_raw`.
 - `product_id` được nối theo ID nguồn. Khi sản phẩm bị xóa thì cột này về NULL (`ON DELETE SET NULL`); review vẫn được giữ.
+- `reviewer_name`: tên người đánh giá **chỉ lưu dạng rút gọn** ("Nguyễn Văn An" → "Nguyễn V. A.", tên tài khoản → "N***"); tên giống email/số điện thoại bị bỏ. Không lưu mã tài khoản.
+- Nguồn: dữ liệu gốc (Hasaki, Guardian) và crawler (Hasaki, Cocolux qua API review công khai). Crawler chống trùng theo (nguồn, `review_id`).
+
+### review_links — review dùng chung giữa các biến thể
+Website hiện **cùng một review trên mọi biến thể** (dung tích, mùi…) của một sản phẩm. Review chỉ lưu **1 lần** trong `reviews`
+(thống kê không đếm trùng); các biến thể khác được nối qua bảng này để trang Tra cứu vẫn hiện đủ review.
+- Khóa chính `(product_id, review_pk)`; khóa ngoại `ON DELETE CASCADE` về cả `products` và `reviews`.
+- Quy tắc: không nối review về chính sản phẩm sở hữu nó; chỉ nối sản phẩm cùng nhà bán lẻ với review (`verify_database.py` kiểm tra cả hai).
+
+### app_settings — cấu hình
+`key` (khóa chính) và `value` (JSON). Hiện có khóa `crawl_schedule`: bật/tắt lịch, chu kỳ (giờ), lần chạy kế tiếp và tùy chọn thu thập.
 
 ### users — người dùng
 - `role` là `Admin` (xem, thêm, sửa, xóa) hoặc `User` (chỉ xem).
 - Mật khẩu chỉ lưu dạng băm PBKDF2-SHA256.
-- Lần chạy đầu, backend tự tạo `admin` và `user`.
+- `build_database.py` tạo sẵn `admin` và `user` khi dựng CSDL; nếu bảng `users` trống, backend tự tạo lại khi khởi động.
 
 ### etl_log — nhật ký làm sạch
 Mỗi bước làm sạch ghi lại: tên bước, bảng, số dòng vào, số dòng ra, số dòng bị tác động, ghi chú. Trang **Báo cáo** hiển thị bảng này.
@@ -198,10 +217,11 @@ Nếu dùng MongoDB, mỗi quan hệ sẽ phải chọn giữa **nhúng (embed)*
 
 | Quan hệ | Lựa chọn | Lý do (theo truy vấn và quan hệ dữ liệu) |
 |---|---|---|
-| Sản phẩm → **lịch sử giá** (1–N, tăng liên tục) | **Reference**: bảng `price_snapshots` riêng | Mỗi lần thu thập hoặc admin đổi giá lại sinh thêm snapshot (hiện 10.424 dòng, tăng sau mỗi lần crawl). Nhúng vào sản phẩm sẽ làm bản ghi phình mãi. Ngoài ra cần truy vấn riêng lịch sử giá theo ngày (biểu đồ xu hướng, Q5 trong `queries.sql`) và lấy "giá mới nhất" bằng `ROW_NUMBER()` |
+| Sản phẩm → **lịch sử giá** (1–N, tăng liên tục) | **Reference**: bảng `price_snapshots` riêng | Mỗi lần thu thập hoặc admin đổi giá lại sinh thêm snapshot (dữ liệu gốc 6.350 dòng, tăng sau mỗi lần thu thập). Nhúng vào sản phẩm sẽ làm bản ghi phình mãi. Ngoài ra cần truy vấn riêng lịch sử giá theo ngày (biểu đồ xu hướng, Q5 trong `queries.sql`) và lấy "giá mới nhất" bằng `ROW_NUMBER()` |
 | Sản phẩm → **nhà bán lẻ** (N–1, chỉ 5 dòng, ít đổi) | **Reference**: `products.retailer_id` → `retailers` | Thông tin nhà bán lẻ (tên, website) dùng chung cho hàng nghìn sản phẩm. Tách bảng thì sửa một chỗ là đủ. View `v_products` "nhúng" sẵn tên nhà bán lẻ khi đọc |
-| Sản phẩm ↔ **danh mục** (N–N) | **Reference**: bảng nối `product_categories`; danh mục chính lưu ở `products.category_id` | Một sản phẩm có thể thuộc nhiều danh mục (7.133 cặp cho 6.413 sản phẩm). Lọc theo danh mục là thao tác chính trên website, nên cần chỉ mục trên bảng nối |
-| Sản phẩm → **review** (1–N, 6.673 dòng, văn bản dài) | **Reference**: `reviews.product_id` (cho phép NULL) | Review đến từ nguồn khác (Hasaki, Guardian), nối bằng ID nguồn, có 85 review chưa nối được với sản phẩm nào. Review cũng được thống kê độc lập theo nguồn (Q6). Xóa sản phẩm thì review vẫn giữ (`ON DELETE SET NULL`) |
+| Sản phẩm ↔ **danh mục** (N–N) | **Reference**: bảng nối `product_categories`; danh mục chính lưu ở `products.category_id` | Một sản phẩm có thể thuộc nhiều danh mục (6.350 cặp cho 5.657 sản phẩm: 569 sản phẩm thuộc 2–4 danh mục). Lọc theo danh mục là thao tác chính trên website, nên cần chỉ mục trên bảng nối |
+| Sản phẩm → **review** (1–N, 6.673 dòng, văn bản dài) | **Reference**: `reviews.product_id` (cho phép NULL) | Review đến từ nguồn khác (Hasaki, Guardian, Cocolux), nối bằng ID nguồn, có 85 review chưa nối được với sản phẩm nào. Review cũng được thống kê độc lập theo nguồn (Q6). Xóa sản phẩm thì review vẫn giữ (`ON DELETE SET NULL`) |
+| Review ↔ **biến thể** dùng chung review (N–N) | **Reference**: bảng nối `review_links` | Nhúng bản sao review vào từng biến thể sẽ đếm trùng khi thống kê; bảng nối giữ mỗi review 1 lần mà biến thể nào cũng xem được |
 | Giá mới nhất, % giảm, rating hiện tại | **Embed khi đọc**: view `v_products` | Gần như mọi màn hình chỉ cần "sản phẩm + giá hiện tại". View trả về một bản ghi phẳng như document đã nhúng, mà không phải lưu trùng dữ liệu |
 | Thuộc tính trích từ tên (ml, g, số món, combo) | **Embed**: cột trong `products` | Quan hệ 1–1, luôn đọc cùng sản phẩm (đặc trưng cho mô hình), không có vòng đời riêng |
 | Kết quả mô hình (dự đoán, cụm, bất thường) | **Reference**: các bảng `ml_*` khóa theo `product_id` | Được ghi lại toàn bộ mỗi lần huấn luyện. Tách bảng thì huấn luyện lại không phải sửa bảng sản phẩm |
@@ -218,7 +238,10 @@ Nếu dùng MongoDB, mỗi quan hệ sẽ phải chọn giữa **nhúng (embed)*
 | `product_matching.csv` | `product_matching` | Ứng viên đối chiếu sản phẩm giữa các website |
 | `collection_logs.csv` | `collection_logs` | Lịch sử các lần thu thập |
 | `hasaki_reviews.csv`, `guardian_reviews.csv` | `reviews` | Đánh giá hợp lệ (rating 1–5, đã bỏ trùng) |
-| `dataset/crawl/crawl_*/snapshots.csv` | `products`, `price_snapshots` | Các lần thu thập mới bằng crawler |
+| `dataset/crawl/crawl_*/snapshots.csv` | `price_snapshots` (+ `products` nếu bật thêm sản phẩm mới) | Các lần thu thập mới bằng crawler. Mặc định chỉ thêm giá cho sản phẩm đã có, nên danh sách 5.657 sản phẩm gốc không đổi |
+| `dataset/crawl/crawl_*/reviews.csv` | `reviews`, `review_links` | Review Hasaki/Cocolux do crawler thu thập |
+
+`build_database.py` mặc định chỉ dựng từ `dataset/raw/` (khớp EDA và báo cáo); chạy kèm `--with-crawl` để nạp lại cả các lần thu thập trong `dataset/crawl/`.
 
 ### Script import, truy vấn mẫu và kiểm tra
 
@@ -235,13 +258,13 @@ Nếu dùng MongoDB, mỗi quan hệ sẽ phải chọn giữa **nhúng (embed)*
 ```mermaid
 flowchart LR
     A[Website 5 nhà bán lẻ] -->|thu thập lần đầu| B[dataset/raw/*.csv]
-    A -->|crawl.py<br/>thu thập định kỳ| F[dataset/crawl/crawl_*]
-    F -->|nạp snapshot mới| C
+    A -->|crawl.py<br/>chạy tay hoặc theo lịch trên web| F[dataset/crawl/crawl_*]
+    F -->|nạp snapshot + review mới| C
     B -->|build_database.py<br/>làm sạch + chuẩn hóa| C[(dataset/beautyprice.db)]
     C -->|train_models.py<br/>scikit-learn| D[bảng ml_*<br/>+ dataset/models/*.joblib]
     D --> C
-    C -->|Flask API app.py| E[Website: Tổng quan, Tra cứu/CRUD,<br/>Phân khúc, Dự đoán, Bất thường, Báo cáo]
-    E -->|Admin thêm/sửa giá| C
+    C -->|Flask API app.py| E[Website: Tổng quan, Tra cứu/CRUD,<br/>Phân khúc, Dự đoán, Bất thường, Báo cáo,<br/>Thu thập, Sao lưu]
+    E -->|Admin thêm/sửa giá, thu thập, phục hồi| C
 ```
 
 ## 6. Ví dụ truy vấn
@@ -261,4 +284,8 @@ ORDER BY (MAX(s.current_price_vnd) - MIN(s.current_price_vnd)) * 1.0 / MIN(s.cur
 -- Điểm review trung bình theo sản phẩm (đã nối theo ID nguồn)
 SELECT p.product_name, COUNT(r.review_pk) AS so_review, ROUND(AVG(r.rating), 2) AS diem_tb
 FROM reviews r JOIN products p USING (product_id) GROUP BY r.product_id ORDER BY so_review DESC LIMIT 10;
+
+-- Review của một sản phẩm, gồm cả review dùng chung từ biến thể khác (cách API /api/reviews?product_id= làm)
+SELECT r.reviewer_name, r.rating, r.review_text FROM reviews r
+WHERE r.product_id = :pid OR r.review_pk IN (SELECT review_pk FROM review_links WHERE product_id = :pid);
 ```
