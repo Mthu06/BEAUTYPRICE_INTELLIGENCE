@@ -10,47 +10,23 @@
     <script src="login.js" defer></script>
 </head>
 <body class="login-page">
-<main class="login">
-    <!-- Cột trái: giới thiệu hệ thống -->
-    <section class="login-brand" aria-label="Giới thiệu">
-        <div class="login-logo">
+<main class="auth">
+    <!-- Cột trái: biểu mẫu đăng nhập -->
+    <section class="auth-main">
+        <a class="auth-logo" href="login.html" aria-label="BeautyPrice Intelligence">
             <span class="brand-mark">B</span>
-            <span><span class="brand-name">BeautyPrice</span><br><span class="brand-sub">Intelligence</span></span>
-        </div>
+            <span><span class="brand-name">BeautyPrice</span><span class="brand-sub">Intelligence</span></span>
+        </a>
 
-        <div class="login-hero">
-            <h1>BeautyPrice Intelligence</h1>
-            <p>Theo dõi &amp; phân tích giá mỹ phẩm từ 5 nhà bán lẻ.</p>
+        <div class="auth-card">
+            <h1>Đăng nhập</h1>
+            <p class="auth-lead">Chào mừng trở lại! Nhập tài khoản để vào hệ thống phân tích giá mỹ phẩm.</p>
 
-            <dl class="login-stats">
-                <div><dt>Nhà bán lẻ</dt><dd>5</dd></div>
-                <div><dt>Sản phẩm</dt><dd>5.657</dd></div>
-                <div><dt>Đánh giá</dt><dd>6.673</dd></div>
-            </dl>
-
-            <ul class="login-features">
-                <li>Tổng quan thị trường và tra cứu dữ liệu giá</li>
-                <li>Phân khúc sản phẩm bằng K-Means</li>
-                <li>Dự đoán giá và phát hiện giá bất thường</li>
-                <li>Báo cáo thống kê, xuất dữ liệu CSV</li>
-            </ul>
-        </div>
-
-        <p class="login-retailers">Hasaki · Watsons · Guardian · Cocolux · The Gioi Skin Food</p>
-    </section>
-
-    <!-- Cột phải: biểu mẫu đăng nhập -->
-    <section class="login-panel">
-        <div class="login-card">
-            <h2>Đăng nhập</h2>
-            <p class="login-lead">Chào mừng trở lại! Nhập tài khoản để vào hệ thống.</p>
-
-            <form id="loginForm" class="login-form" novalidate>
+            <form id="loginForm" class="auth-form" novalidate>
                 <div class="field">
                     <label for="username">Tên đăng nhập</label>
-                    <input class="input" type="text" id="username" placeholder="Nhập tên đăng nhập" autocomplete="username" autofocus>
+                    <input class="input" type="text" id="username" placeholder="VD: admin" autocomplete="username" autofocus>
                 </div>
-
                 <div class="field">
                     <label for="password">Mật khẩu</label>
                     <div class="password-wrap">
@@ -58,26 +34,54 @@
                         <button type="button" id="togglePassword" class="icon-btn toggle-password" aria-label="Hiện mật khẩu" aria-pressed="false"></button>
                     </div>
                 </div>
-
                 <p id="loginError" class="form-error" role="alert"></p>
-
-                <button type="submit" id="loginButton" class="btn btn-primary login-submit">Đăng nhập</button>
+                <button type="submit" id="loginButton" class="btn btn-primary auth-submit">Đăng nhập</button>
             </form>
 
-            <div class="login-demo">
-                <div class="login-demo-title">Tài khoản demo (đồ án) — bấm để điền nhanh</div>
-                <div class="login-demo-list">
-                    <button type="button" class="demo-account" data-user="admin" data-pass="Admin@123">
-                        <b>admin</b> / Admin@123 <span class="badge badge-brand">Quản trị</span>
-                    </button>
-                    <button type="button" class="demo-account" data-user="user" data-pass="User@123">
-                        <b>user</b> / User@123 <span class="badge">Người dùng</span>
-                    </button>
-                </div>
+            <div class="auth-divider"><span>Tài khoản demo · bấm để điền nhanh</span></div>
+            <div class="demo-grid">
+                <button type="button" class="demo-account" data-user="admin" data-pass="Admin@123">
+                    <span class="demo-avatar admin">A</span>
+                    <span><b>Quản trị viên</b><small>admin · Admin@123</small></span>
+                </button>
+                <button type="button" class="demo-account" data-user="user" data-pass="User@123">
+                    <span class="demo-avatar">U</span>
+                    <span><b>Người dùng</b><small>user · User@123</small></span>
+                </button>
             </div>
         </div>
-        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+
+        <footer class="auth-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
     </section>
+
+    <!-- Cột phải: giới thiệu + số liệu thật lấy trực tiếp từ CSDL (/api/public-stats) -->
+    <aside class="auth-side" aria-label="Giới thiệu hệ thống">
+        <div class="auth-side-inner">
+            <span class="auth-pill"><span class="auth-pill-dot"></span>Dữ liệu từ 5 nhà bán lẻ mỹ phẩm</span>
+            <h2>Theo dõi giá mỹ phẩm,<br>ra quyết định bằng dữ liệu.</h2>
+            <p class="auth-side-lead">Tổng hợp giá, khuyến mãi và đánh giá; phân khúc sản phẩm, dự đoán giá và phát hiện giá bất thường.</p>
+
+            <div class="auth-preview" id="authPreview">
+                <div class="auth-preview-head">
+                    <b>Sản phẩm theo nhà bán lẻ</b>
+                    <span class="auth-live">Trực tiếp từ CSDL</span>
+                </div>
+                <div class="auth-bars" id="retailerBars"></div>
+                <dl class="auth-stats">
+                    <div><dt>Sản phẩm</dt><dd data-stat="products">—</dd></div>
+                    <div><dt>Snapshot giá</dt><dd data-stat="snapshots">—</dd></div>
+                    <div><dt>Đánh giá</dt><dd data-stat="reviews">—</dd></div>
+                </dl>
+            </div>
+
+            <ul class="auth-features">
+                <li><span class="auth-feature-icon" data-icon="dashboard"></span>Tổng quan &amp; tra cứu giá</li>
+                <li><span class="auth-feature-icon" data-icon="clusters"></span>Phân khúc K-Means</li>
+                <li><span class="auth-feature-icon" data-icon="predict"></span>Dự đoán giá, bất thường</li>
+                <li><span class="auth-feature-icon" data-icon="download"></span>Thu thập tự động, sao lưu</li>
+            </ul>
+        </div>
+    </aside>
 </main>
 </body>
 </html>

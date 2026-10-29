@@ -1,111 +1,134 @@
-/* login.css - trang Đăng nhập (không có sidebar). Dùng token & thành phần từ style.css. */
+/* login.css - trang Đăng nhập (không có sidebar). Dùng token & thành phần từ style.css.
+   Bố cục: trái = biểu mẫu gọn; phải = khung giới thiệu bo góc, nền tối, có số liệu thật từ CSDL. */
 
-.login {
+.login-page { background: var(--surface); }
+.auth {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
     min-height: 100vh;
 }
 
-/* ---------------------------------------------------------------- cột thương hiệu */
-.login-brand {
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-    padding: 40px 56px;
-    color: #fff;
-    background: linear-gradient(135deg, #6d63ff 0%, #4f46e5 50%, #2a78d6 100%);
-}
-/* họa tiết nền: hai vầng sáng + lưới chấm mờ */
-.login-brand::before,
-.login-brand::after { content: ""; position: absolute; pointer-events: none; }
-.login-brand::before {
-    inset: 0;
-    background-image: radial-gradient(rgba(255, 255, 255, .14) 1px, transparent 1px);
-    background-size: 22px 22px;
-    mask-image: linear-gradient(160deg, #000 10%, transparent 70%);
-}
-.login-brand::after {
-    width: 520px; height: 520px; right: -180px; bottom: -200px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, .22), transparent 65%);
-}
-.login-brand > * { position: relative; z-index: 1; }
-
-.login-logo { display: flex; align-items: center; gap: 12px; }
-.login-logo .brand-mark { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .3); }
-.login-logo .brand-name { font-weight: 700; font-size: 15px; }
-.login-logo .brand-sub { font-size: 10.5px; letter-spacing: 2.4px; text-transform: uppercase; color: rgba(255, 255, 255, .7); }
-
-.login-hero { margin: auto 0; max-width: 520px; }
-.login-hero h1 { margin: 0; font-size: 40px; line-height: 1.12; font-weight: 800; letter-spacing: -.8px; }
-.login-hero > p { margin: 14px 0 0; font-size: 17px; color: rgba(255, 255, 255, .85); }
-
-.login-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 32px 0 0; }
-.login-stats div {
-    padding: 14px 16px; border-radius: 14px;
-    background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22);
-    backdrop-filter: blur(4px);
-}
-.login-stats dt { font-size: 12.5px; color: rgba(255, 255, 255, .78); }
-.login-stats dd { margin: 2px 0 0; font-size: 26px; font-weight: 750; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
-
-.login-features { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 10px; }
-.login-features li { display: flex; align-items: center; gap: 10px; color: rgba(255, 255, 255, .9); }
-.login-features li::before {
-    content: ""; width: 20px; height: 20px; flex: none; border-radius: 50%;
-    background: rgba(255, 255, 255, .18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
-}
-
-.login-retailers { margin: 0; font-size: 12.5px; letter-spacing: .3px; color: rgba(255, 255, 255, .7); }
-
 /* ---------------------------------------------------------------- cột biểu mẫu */
-.login-panel {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 40px 24px 24px;
-}
-.login-card { width: min(400px, 100%); margin: auto 0; }
-.login-card h2 { margin: 0; font-size: 28px; font-weight: 750; letter-spacing: -.4px; }
-.login-lead { margin: 6px 0 28px; color: var(--text-2); }
+.auth-main { display: flex; flex-direction: column; padding: 32px clamp(24px, 6vw, 72px); }
+.auth-logo { display: inline-flex; align-items: center; gap: 12px; color: var(--text); align-self: flex-start; }
+.auth-logo:hover { text-decoration: none; }
+.auth-logo .brand-name, .auth-logo .brand-sub { display: block; }
+.auth-logo .brand-sub { color: var(--muted); }
 
-.login-form { display: flex; flex-direction: column; gap: 16px; }
-.login-form .input { height: 44px; }
+.auth-card { width: min(400px, 100%); margin: auto; padding: 40px 0; }
+.auth-card h1 { margin: 0; font-size: 30px; line-height: 1.2; font-weight: 750; letter-spacing: -.6px; }
+.auth-lead { margin: 8px 0 28px; color: var(--text-2); }
+
+.auth-form { display: flex; flex-direction: column; gap: 16px; }
+.auth-form .input { height: 46px; border-radius: 12px; background: var(--surface); }
 .password-wrap { position: relative; }
 .password-wrap .input { padding-right: 46px; }
-.toggle-password { position: absolute; right: 5px; top: 5px; color: var(--muted); }
+.toggle-password { position: absolute; right: 6px; top: 6px; color: var(--muted); }
 .toggle-password:hover { color: var(--text); background: var(--surface-2); }
 .toggle-password.active { color: var(--brand); }
-.login-form .form-error { margin: -4px 0 0; }
-.login-form .form-error:empty { min-height: 0; margin: 0; }
-.login-submit { height: 46px; font-size: 15px; }
+.auth-form .form-error { margin: -4px 0 0; }
+.auth-form .form-error:empty { min-height: 0; margin: 0; }
+.auth-submit { height: 46px; margin-top: 4px; border-radius: 12px; font-size: 15px; box-shadow: 0 8px 20px rgba(79, 70, 229, .25); }
 
-.login-demo { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
-.login-demo-title { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
-.login-demo-list { display: grid; gap: 8px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 28px 0 14px; color: var(--muted); font-size: 12.5px; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.demo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .demo-account {
-    display: flex; align-items: center; gap: 6px;
-    padding: 10px 12px; border-radius: 10px; cursor: pointer; text-align: left;
-    background: var(--surface); border: 1px dashed var(--border-strong); color: var(--text-2);
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px;
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    text-align: left; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.demo-account b { color: var(--text); }
-.demo-account .badge { margin-left: auto; font-family: var(--font); }
 .demo-account:hover { border-color: var(--brand); background: var(--brand-50); }
+.demo-account:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--brand-100); border-color: var(--brand); }
+.demo-account b { display: block; font-size: 13px; }
+.demo-account small { display: block; color: var(--muted); font-size: 12px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.demo-avatar {
+    flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px;
+    font-weight: 700; font-size: 13px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border);
+}
+.demo-avatar.admin { background: var(--brand-50); color: var(--brand); border-color: var(--brand-100); }
 
-.login-panel .page-foot { margin-top: 24px; }
+.auth-foot { font-size: 12px; color: var(--muted); }
 
-/* ---------------------------------------------------------------- màn hình hẹp: 1 cột */
+/* ---------------------------------------------------------------- khung giới thiệu */
+.auth-side { padding: 16px 16px 16px 0; }
+.auth-side-inner {
+    position: relative; overflow: hidden; height: 100%; min-height: 560px;
+    display: flex; flex-direction: column; justify-content: center; gap: 24px;
+    padding: 48px clamp(28px, 4.5vw, 64px); border-radius: 24px; color: #fff;
+    background:
+        radial-gradient(900px 480px at 100% 0%, rgba(99, 91, 255, .55), transparent 60%),
+        radial-gradient(700px 420px at 0% 100%, rgba(42, 120, 214, .45), transparent 60%),
+        #12141c;
+}
+/* lưới mờ trang trí */
+.auth-side-inner::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at 70% 30%, #000 20%, transparent 75%);
+}
+.auth-side-inner > * { position: relative; }
+
+.auth-pill {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+    font-size: 12.5px; color: rgba(255, 255, 255, .85); background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .14);
+}
+.auth-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, .25); }
+.auth-side h2 { margin: 0; font-size: clamp(28px, 2.6vw, 38px); line-height: 1.15; font-weight: 750; letter-spacing: -.8px; }
+.auth-side-lead { margin: -8px 0 0; max-width: 520px; font-size: 15px; color: rgba(255, 255, 255, .72); }
+
+.auth-preview {
+    max-width: 560px; padding: 20px; border-radius: 18px;
+    background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .35); backdrop-filter: blur(8px);
+}
+.auth-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.auth-preview-head b { font-size: 14px; font-weight: 650; }
+.auth-live { font-size: 11.5px; color: rgba(255, 255, 255, .6); }
+
+.auth-bars { display: grid; gap: 10px; }
+.auth-bar { display: grid; grid-template-columns: 132px minmax(0, 1fr) 52px; align-items: center; gap: 10px; font-size: 12.5px; }
+.auth-bar-name { display: flex; align-items: center; gap: 7px; color: rgba(255, 255, 255, .82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auth-bar-name i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.auth-bar-track { display: block; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.auth-bar-fill { display: block; height: 100%; border-radius: 999px; width: 0; transition: width .8s cubic-bezier(.2, .8, .2, 1); }
+.auth-bar-value { text-align: right; color: rgba(255, 255, 255, .9); font-variant-numeric: tabular-nums; }
+
+.auth-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.auth-stats dt { font-size: 12px; color: rgba(255, 255, 255, .6); }
+.auth-stats dd { margin: 2px 0 0; font-size: 22px; font-weight: 750; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+
+.auth-features { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; max-width: 560px; }
+.auth-features li { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: rgba(255, 255, 255, .82); }
+.auth-feature-icon {
+    flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px;
+    background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); color: #c7c9ff;
+}
+.auth-feature-icon svg { width: 16px; height: 16px; }
+
+/* màn hình thấp (VD 1366x768, 1280x720): thu gọn khoảng cách để khung giới thiệu vừa một màn hình */
+@media (max-height: 800px) and (min-width: 961px) {
+    .auth-side-inner { gap: 16px; padding-block: 28px; min-height: 0; }
+    .auth-side h2 { font-size: clamp(24px, 2.2vw, 32px); }
+    .auth-side-lead { margin-top: -4px; }
+    .auth-preview { padding: 16px; }
+    .auth-bars { gap: 7px; }
+    .auth-stats { margin-top: 12px; padding-top: 12px; }
+    .auth-stats dd { font-size: 19px; }
+    .auth-card { padding: 24px 0; }
+    .auth-lead { margin-bottom: 20px; }
+}
+
+/* ---------------------------------------------------------------- màn hình hẹp: chỉ còn biểu mẫu */
 @media (max-width: 960px) {
-    .login { grid-template-columns: minmax(0, 1fr); }
-    .login-brand { gap: 22px; padding: 24px 20px 28px; }
-    .login-hero { margin: 0; }
-    .login-hero h1 { font-size: 26px; }
-    .login-hero > p { font-size: 15px; margin-top: 8px; }
-    .login-stats { margin-top: 18px; gap: 8px; }
-    .login-stats div { padding: 10px 12px; }
-    .login-stats dd { font-size: 20px; }
-    .login-logo, .login-features, .login-retailers { display: none; }
-    .login-panel { padding: 28px 20px 20px; }
-    .login-card h2 { font-size: 24px; }
-    .login-lead { margin-bottom: 20px; }
+    .auth { grid-template-columns: minmax(0, 1fr); }
+    .auth-side { display: none; }
+    .auth-main { padding: 24px 20px; }
+    .auth-card { padding: 32px 0; }
+    .auth-card h1 { font-size: 26px; }
+}
+@media (max-width: 420px) {
+    .demo-grid { grid-template-columns: minmax(0, 1fr); }
 }

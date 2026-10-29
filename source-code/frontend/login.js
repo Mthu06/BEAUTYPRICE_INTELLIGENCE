@@ -13,6 +13,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const error = $("loginError");
     const toggle = $("togglePassword");
 
+    document.querySelectorAll("[data-icon]").forEach((el) => { el.innerHTML = BP.icon(el.dataset.icon); });
+
+    // Số liệu thật từ CSDL (không cần đăng nhập, chỉ là con số tổng); lỗi -> ẩn khung thay vì hiện số sai
+    BP.api("/api/public-stats", { auth: false }).then((stats) => {
+        document.querySelectorAll("[data-stat]").forEach((dd) => { dd.textContent = BP.formatNumber(stats[dd.dataset.stat]); });
+        const list = stats.by_retailer || [], max = Math.max(1, ...list.map((r) => r.products));
+        $("retailerBars").innerHTML = list.map((r) => `<div class="auth-bar">
+            <span class="auth-bar-name"><i style="background:${BP.retailerColor(r.retailer_id)}"></i>${BP.escapeHtml(r.retailer_name)}</span>
+            <span class="auth-bar-track"><span class="auth-bar-fill" data-width="${(r.products / max) * 100}" style="background:${BP.retailerColor(r.retailer_id)}"></span></span>
+            <span class="auth-bar-value">${BP.formatNumber(r.products)}</span></div>`).join("");
+        requestAnimationFrame(() => document.querySelectorAll(".auth-bar-fill").forEach((bar) => { bar.style.width = `${bar.dataset.width}%`; }));
+    }).catch(() => { $("authPreview").hidden = true; });
+
     toggle.innerHTML = BP.icon("eye");
     toggle.addEventListener("click", () => {
         const show = password.type === "password";
