@@ -52,6 +52,7 @@ Hệ thống **thu thập – làm sạch – lưu trữ – phân tích – d�
 | Chạy website | nháy đúp `run.bat` | `./run.sh` |
 | Tắt server | `stop.bat` | `./stop.sh` |
 | Khởi động lại sau khi cập nhật code | `restart.bat` | `./restart.sh` |
+| Khôi phục dữ liệu gốc (5.657 sản phẩm) | `reset.bat` | `./reset.sh` |
 | Dựng lại CSDL từ CSV gốc | `python source-code/pipeline/build_database.py --force` | như Windows |
 | Huấn luyện lại mô hình | `python source-code/pipeline/train_models.py` | như Windows |
 | Kiểm tra CSDL | `python source-code/pipeline/verify_database.py` | như Windows |
@@ -64,7 +65,7 @@ Tài khoản demo: `admin / Admin@123` (Quản trị viên), `user / User@123` (
 
 ```
 beauty/
-├─ run.bat / run.sh / stop.* / restart.*   chạy - tắt - khởi động lại server
+├─ run.bat / run.sh / stop.* / restart.* / reset.*   chạy - tắt - khởi động lại - khôi phục dữ liệu gốc
 ├─ dataset/
 │  ├─ raw/              CSV gốc của nhóm (KHÔNG sửa tay) - nguồn sự thật
 │  ├─ crawl/            mỗi lần thu thập 1 thư mục: raw/*.gz, snapshots.csv, reviews.csv, collection_log.csv
@@ -336,6 +337,7 @@ Mọi test chạy trên **bản sao** CSDL trong thư mục tạm, không đụn
 
 **Vận hành**
 20. *Trang báo "Máy chủ đang chạy chưa có chức năng này"?* → server cũ còn chạy: chạy `restart.bat` (hoặc `stop.bat` rồi `run.bat`).
+21. *Lỡ sửa hỏng dữ liệu thì sao?* → `reset.bat` / `./reset.sh` dựng lại CSDL từ `dataset/raw` (CSDL cũ giữ thành `.bak`); hoặc phục hồi từ bản sao lưu trên trang Sao lưu & phục hồi.
 
 ---
 

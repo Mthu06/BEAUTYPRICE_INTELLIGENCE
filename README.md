@@ -14,6 +14,7 @@ Chỉ cần cài **Python 3.9+**. Không cần MySQL hay bất kỳ server CSDL 
 | macOS / Linux | `chmod +x run.sh && ./run.sh` |
 | Tắt server | `stop.bat` / `./stop.sh` (chỉ tắt tiến trình Python đang chạy ở cổng của dự án) |
 | Khởi động lại (sau khi cập nhật code) | `restart.bat` / `./restart.sh` |
+| Khôi phục dữ liệu gốc | `reset.bat` / `./reset.sh` (dựng lại CSDL từ `dataset/raw`; CSDL cũ giữ thành `.bak`) |
 
 Script tự tạo môi trường ảo, cài Flask, khởi động server và mở **http://127.0.0.1:5000/**. Nếu chưa có `dataset/beautyprice.db`, backend tự dựng CSDL từ `dataset/raw/`.
 
@@ -88,7 +89,7 @@ Lưu ý: dựng lại CSDL sẽ xóa các thay đổi admin đã nhập qua webs
 
 ```
 ├─ readme.txt                 thông tin đề tài & nhóm (theo mẫu nộp bài)
-├─ run.bat / run.sh           chạy 1 lần bấm (stop / restart: tắt, khởi động lại)
+├─ run.bat / run.sh           chạy 1 lần bấm (stop: tắt · restart: khởi động lại · reset: khôi phục dữ liệu gốc)
 ├─ source-code/
 │  ├─ backend/                app.py (Flask + SQLite), requirements.txt
 │  ├─ frontend/               7 trang web, common.js, style.css, vendor/chart.umd.min.js
