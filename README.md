@@ -14,7 +14,7 @@ Chỉ cần cài **Python 3.9+**. Không cần MySQL hay bất kỳ server CSDL 
 | macOS / Linux | `chmod +x run.sh && ./run.sh` |
 | Tắt server | `stop.bat` / `./stop.sh` (chỉ tắt tiến trình Python đang chạy ở cổng của dự án) |
 | Khởi động lại (sau khi cập nhật code) | `restart.bat` / `./restart.sh` |
-| Khôi phục dữ liệu gốc | `reset.bat` / `./reset.sh` (dựng lại CSDL từ `dataset/raw`; CSDL cũ giữ thành `.bak`) |
+| Khôi phục dữ liệu gốc | `reset.bat` / `./reset.sh` (lấy lại CSDL gốc từ git, kèm kết quả mô hình; không có git thì dựng lại từ `dataset/raw`) |
 
 Script tự tạo môi trường ảo, cài Flask, khởi động server và mở **http://127.0.0.1:5000/**. Nếu chưa có `dataset/beautyprice.db`, backend tự dựng CSDL từ `dataset/raw/`.
 
@@ -140,6 +140,8 @@ Tài liệu trong `reports/`:
 |---|---|
 | "Không kết nối được backend" | Chạy `run.bat` / `run.sh`, mở bằng `http://127.0.0.1:5000/`, **không** mở file HTML trực tiếp |
 | Trang báo "Máy chủ đang chạy chưa có chức năng này" | Server đang chạy bản code cũ: chạy `restart.bat` / `./restart.sh` rồi tải lại trang |
+| Dữ liệu bị sửa hỏng, muốn về như ban đầu | `reset.bat` / `./reset.sh`. Script lấy lại CSDL gốc **từ git** (có sẵn kết quả mô hình, không cần cài thêm gì); không có git thì dựng lại từ `dataset/raw` |
+| Cài thư viện học máy báo lỗi `Preparing metadata ... did not run successfully` / cần `vswhere.exe` | Python đang dùng quá mới nên không có bản dựng sẵn, pip phải biên dịch. Dùng `reset.bat` để lấy CSDL gốc từ git (đã có kết quả mô hình), hoặc cài Python 3.11/3.12 rồi xóa `source-code/backend/.venv` và chạy lại `run.bat` |
 | Bị đẩy về trang đăng nhập | Server vừa khởi động lại nên phiên cũ hết hiệu lực. Đăng nhập lại |
 | Cổng 5000 bận (macOS AirPlay) | `BEAUTY_PORT=5050 ./run.sh` |
 | Muốn xem dữ liệu bằng giao diện | Mở `dataset/beautyprice.db` bằng DB Browser for SQLite |

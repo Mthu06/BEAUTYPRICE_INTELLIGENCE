@@ -52,7 +52,7 @@ Hệ thống **thu thập – làm sạch – lưu trữ – phân tích – d�
 | Chạy website | nháy đúp `run.bat` | `./run.sh` |
 | Tắt server | `stop.bat` | `./stop.sh` |
 | Khởi động lại sau khi cập nhật code | `restart.bat` | `./restart.sh` |
-| Khôi phục dữ liệu gốc (5.657 sản phẩm) | `reset.bat` | `./reset.sh` |
+| Khôi phục dữ liệu gốc (5.657 sản phẩm, kèm kết quả mô hình) | `reset.bat` | `./reset.sh` |
 | Dựng lại CSDL từ CSV gốc | `python source-code/pipeline/build_database.py --force` | như Windows |
 | Huấn luyện lại mô hình | `python source-code/pipeline/train_models.py` | như Windows |
 | Kiểm tra CSDL | `python source-code/pipeline/verify_database.py` | như Windows |
@@ -337,7 +337,7 @@ Mọi test chạy trên **bản sao** CSDL trong thư mục tạm, không đụn
 
 **Vận hành**
 20. *Trang báo "Máy chủ đang chạy chưa có chức năng này"?* → server cũ còn chạy: chạy `restart.bat` (hoặc `stop.bat` rồi `run.bat`).
-21. *Lỡ sửa hỏng dữ liệu thì sao?* → `reset.bat` / `./reset.sh` dựng lại CSDL từ `dataset/raw` (CSDL cũ giữ thành `.bak`); hoặc phục hồi từ bản sao lưu trên trang Sao lưu & phục hồi.
+21. *Lỡ sửa hỏng dữ liệu thì sao?* → `reset.bat` / `./reset.sh`: lấy lại CSDL gốc từ git (kèm kết quả mô hình, không cần cài thêm gì); không có git thì dựng lại từ `dataset/raw`. CSDL hiện tại được chép ra `.bak` trước. Hoặc phục hồi từ bản sao lưu trên trang Sao lưu & phục hồi.
 
 ---
 

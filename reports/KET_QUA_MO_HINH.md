@@ -128,7 +128,7 @@ Ma trận nhầm lẫn (tập test; hàng là thực tế, cột là dự đoán
 | Pipeline đã huấn luyện (tiền xử lý + mô hình) | `dataset/models/price_regressor.joblib`, `price_segment_classifier.joblib`, `kmeans.joblib`, `isolation_forest.joblib` |
 | Tham số, chỉ số validation/test của từng mô hình đã thử | Bảng `ml_runs` (`params_json`, `metrics_json`, `is_selected`) |
 | Dự đoán từng sản phẩm, cụm, điểm bất thường, độ quan trọng đặc trưng | `ml_price_predictions`, `ml_clusters`, `ml_anomalies`, `ml_feature_importance` |
-| Phiên bản thư viện | `source-code/pipeline/requirements-ml.txt` (scikit-learn 1.6.1, pandas 2.2.3, numpy 2.1.3, joblib 1.4.2) |
+| Phiên bản thư viện | Bộ kết quả này huấn luyện bằng scikit-learn 1.6.1, pandas 2.2.3, numpy 2.1.3, joblib 1.4.2. `source-code/pipeline/requirements-ml.txt` khai báo theo khoảng phiên bản để cài được trên Python mới; bản khác có thể lệch vài phần nghìn ở chỉ số |
 
 ```bash
 cd source-code/pipeline

@@ -1,5 +1,9 @@
-# Thư viện cho train_models.py (không cần để chạy website)
-pandas==2.2.3
-numpy==2.1.3
-scikit-learn==1.6.1
-joblib==1.4.2
+# Thư viện cho train_models.py (không cần để chạy website).
+# Dùng khoảng phiên bản thay vì ghim cứng: Python mới (3.13+) không còn bản dựng sẵn
+# cho các bản ghim cũ, pip sẽ phải biên dịch từ mã nguồn và cần Visual Studio.
+# Phiên bản dùng khi huấn luyện bộ kết quả hiện tại: pandas 2.2.3, numpy 2.1.3,
+# scikit-learn 1.6.1, joblib 1.4.2 (xem reports/KET_QUA_MO_HINH.md).
+pandas>=2.2,<3
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+joblib>=1.4,<2
