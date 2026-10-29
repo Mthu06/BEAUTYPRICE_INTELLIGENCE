@@ -98,7 +98,8 @@ Lưu ý: dựng lại CSDL sẽ xóa các thay đổi admin đã nhập qua webs
 │  ├─ analysis/               EDA, KPI, dashboard offline, insight (Giai đoạn 6)
 │  └─ tests/                  test_api.py, test_backup.py, test_crawler.py, e2e/ (test case giao diện)
 ├─ dataset/                   raw/ (CSV gốc), crawl/ (các lần thu thập mới), beautyprice.db, models/, backups/ (bản sao lưu)
-├─ reports/                   GIAI_THICH_CODE.md, THIET_KE_CSDL.md, KIEM_TRA_CSDL.md, KET_QUA_MO_HINH.md, SO_DO_MAN_HINH.md, TEST_CASES.md, BAO_CAO_LOI.md, demo/
+├─ reports/                   BAO_CAO_DO_AN.docx/.pdf, SLIDES_BAO_CAO.pptx/.pdf, BANG_PHAN_CONG.md, KICH_BAN_VIDEO.md,
+│                             GIAI_THICH_CODE.md, THIET_KE_CSDL.md, KIEM_TRA_CSDL.md, KET_QUA_MO_HINH.md, SO_DO_MAN_HINH.md, TEST_CASES.md, BAO_CAO_LOI.md, demo/
 ├─ refs/                      tài liệu tham khảo, kết quả mô hình bản trước
 └─ libs/                      danh sách phần mềm & thư viện
 ```
@@ -117,6 +118,8 @@ Test case giao diện (21 trường hợp, tự chụp ảnh, xuất tệp và q
 - Chạy lại bằng `cd source-code/tests/e2e && npm install && node testcases.js http://127.0.0.1:5000 <thư mục kết quả>`. Cần Chrome và `ffmpeg` để quay video; nên chạy với CSDL bản sao vì test có thêm/xóa dữ liệu.
 
 Tài liệu trong `reports/`:
+- `BAO_CAO_DO_AN.docx` / `.pdf`: quyển báo cáo đồ án; `SLIDES_BAO_CAO.pptx` / `.pdf`: slides thuyết trình (15 trang).
+- `BANG_PHAN_CONG.md`: bảng phân công công việc; `KICH_BAN_VIDEO.md`: kịch bản video (phụ đề ở `demo/phu_de_video.srt`).
 - `GIAI_THICH_CODE.md`: giải thích code từ tổng quan tới từng file/hàm, lưu ý và câu hỏi vấn đáp thường gặp.
 - `THIET_KE_CSDL.md`: ERD, từ điển dữ liệu, quy tắc nghiệp vụ; `KIEM_TRA_CSDL.md`: kết quả kiểm tra CSDL (tự sinh).
 - `KET_QUA_MO_HINH.md`: kết quả 4 nhóm mô hình học máy.

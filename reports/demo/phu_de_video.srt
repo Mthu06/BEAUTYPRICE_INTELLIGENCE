@@ -1,0 +1,251 @@
+1
+00:00:00,000 --> 00:00:02,500
+Xin chào thầy cô và các bạn.
+
+2
+00:00:02,850 --> 00:00:09,850
+Chúng em là nhóm «số nhóm», lớp học phần ABDA433708, môn Phân tích dữ liệu lớn trong kinh doanh.
+
+3
+00:00:10,200 --> 00:00:13,900
+Giảng viên hướng dẫn: «điền họ tên giảng viên».
+
+4
+00:00:14,250 --> 00:00:25,250
+Hôm nay nhóm em xin trình bày đồ án BeautyPrice Intelligence: hệ thống thu thập, phân tích và dự đoán giá mỹ phẩm từ năm nhà bán lẻ trực tuyến tại Việt Nam.
+
+5
+00:00:26,600 --> 00:00:29,100
+Nhóm em gồm năm thành viên.
+
+6
+00:00:29,450 --> 00:00:35,350
+Bạn «tên» phụ trách dữ liệu thu thập ban đầu; bạn «tên» thiết kế cơ sở dữ liệu.
+
+7
+00:00:35,700 --> 00:00:42,000
+Bạn «tên» làm phân tích khám phá và dashboard; bạn «tên» xây dựng các mô hình học máy.
+
+8
+00:00:42,350 --> 00:00:46,950
+Và em, «tên», phụ trách công cụ thu thập và toàn bộ website.
+
+9
+00:00:48,300 --> 00:00:51,600
+Phần trình bày của nhóm gồm sáu nội dung.
+
+10
+00:00:51,950 --> 00:00:56,350
+Một, bài toán và dữ liệu. Hai, công cụ thu thập đa nguồn.
+
+11
+00:00:56,700 --> 00:01:01,800
+Ba, làm sạch và thiết kế cơ sở dữ liệu. Bốn, trực quan hóa dữ liệu.
+
+12
+00:01:02,150 --> 00:01:06,650
+Năm, các mô hình học máy. Và sáu, demo website hoàn chỉnh.
+
+13
+00:01:07,1000 --> 00:01:17,300
+Trên thị trường mỹ phẩm trực tuyến, cùng một sản phẩm có giá chênh lệch đáng kể giữa các website, và khuyến mãi thay đổi liên tục.
+
+14
+00:01:17,650 --> 00:01:24,250
+Người mua khó so sánh thủ công, còn doanh nghiệp thì thiếu bức tranh tổng hợp để định giá.
+
+15
+00:01:24,600 --> 00:01:36,100
+Nhóm em đã thu thập được năm nghìn sáu trăm năm mươi bảy sản phẩm, sáu nghìn ba trăm năm mươi bản ghi giá và sáu nghìn sáu trăm bảy mươi ba đánh giá của khách hàng.
+
+16
+00:01:36,450 --> 00:01:42,950
+Dữ liệu trải trên sáu danh mục chăm sóc da và cơ thể, với bốn trăm mười tám thương hiệu.
+
+17
+00:01:44,300 --> 00:01:49,800
+Nhóm em tự xây dựng công cụ thu thập, chỉ dùng thư viện chuẩn của Python.
+
+18
+00:01:50,150 --> 00:01:58,250
+Quản trị viên chọn nguồn, chọn danh mục và lượng dữ liệu muốn lấy, hệ thống sẽ ước tính thời gian trước khi chạy.
+
+19
+00:01:58,600 --> 00:02:04,300
+Công việc chạy nền, nhật ký cập nhật liên tục và có thể dừng bất cứ lúc nào.
+
+20
+00:02:04,650 --> 00:02:10,150
+Ngoài ra có thể đặt lịch tự động để hệ thống tự cập nhật giá theo chu kỳ.
+
+21
+00:02:10,500 --> 00:02:25,800
+Một điểm nhóm em đặc biệt chú ý là đạo đức thu thập dữ liệu: công cụ đọc và tuân thủ robots dot txt, giãn cách giữa các yêu cầu, và khi website bật cơ chế chống bot thì chỉ ghi nhận trạng thái chứ không tìm cách vượt qua.
+
+22
+00:02:27,150 --> 00:02:37,450
+Dữ liệu thô có rất nhiều vấn đề: thương hiệu viết nhiều kiểu khác nhau, phần trăm giảm giá sai lệch, rating bằng không bị hiểu nhầm là không sao.
+
+23
+00:02:37,800 --> 00:02:44,800
+Nhóm em viết chương trình làm sạch riêng, và điều quan trọng là mỗi bước xử lý đều được ghi lại.
+
+24
+00:02:45,150 --> 00:02:52,450
+Thầy cô có thể xem toàn bộ quy trình ngay trên trang Báo cáo: bước nào, tác động lên bao nhiêu dòng.
+
+25
+00:02:52,800 --> 00:02:59,300
+Dữ liệu sau khi làm sạch được nạp vào cơ sở dữ liệu SQLite gồm mười bảy bảng và hai view.
+
+26
+00:02:59,650 --> 00:03:11,350
+Nhóm còn viết thêm một chương trình kiểm chứng độc lập: đọc thẳng tệp CSV bằng Python thuần, tự tính lại rồi so với kết quả truy vấn SQL. Hiện tất cả các mục đều đạt.
+
+27
+00:03:12,700 --> 00:03:21,900
+Trang Tổng quan cho biết bức tranh thị trường: tỷ trọng theo nhà bán lẻ, phân bố khoảng giá, giá theo danh mục và mức khuyến mãi.
+
+28
+00:03:22,250 --> 00:03:29,950
+Mọi biểu đồ đều phản ứng theo bộ lọc. Khi em chọn một nhà bán lẻ, toàn bộ chỉ số và biểu đồ cập nhật ngay.
+
+29
+00:03:30,300 --> 00:03:38,700
+Trang Báo cáo có riêng mục danh sách giá trị nhỏ nhất và lớn nhất theo danh mục, theo nhà bán lẻ và theo từng chỉ số.
+
+30
+00:03:39,050 --> 00:03:46,450
+Nhóm em dùng tám loại biểu đồ khác nhau, với bảng màu đã kiểm tra khả năng phân biệt cho người mù màu.
+
+31
+00:03:47,800 --> 00:03:53,600
+Trang Tra cứu hỗ trợ tìm kiếm không dấu, nên gõ không dấu vẫn ra đúng kết quả.
+
+32
+00:03:53,950 --> 00:04:00,650
+Mở chi tiết một sản phẩm, ta thấy lịch sử giá theo thời gian và các đánh giá của khách hàng.
+
+33
+00:04:01,000 --> 00:04:11,300
+Quản trị viên có thể thêm, sửa, xóa sản phẩm. Khi sửa giá, hệ thống không ghi đè mà thêm một bản ghi giá mới, nhờ vậy lịch sử giá được giữ nguyên.
+
+34
+00:04:11,650 --> 00:04:18,950
+Dữ liệu nhập vào đều được kiểm tra: giá phải lớn hơn không, giá niêm yết không được nhỏ hơn giá bán.
+
+35
+00:04:20,300 --> 00:04:23,400
+Nhóm em xây dựng bốn bài toán học máy.
+
+36
+00:04:23,750 --> 00:04:32,950
+Bài toán thứ nhất là dự đoán giá bán. Nhóm so sánh bốn mô hình và chọn Random Forest, đạt sai số trung bình chín mươi nghìn đồng.
+
+37
+00:04:33,300 --> 00:04:42,600
+Bài toán thứ hai là phân loại phân khúc giá thành ba mức thấp, trung bình và cao, đạt độ chính xác bảy mươi ba phẩy năm phần trăm.
+
+38
+00:04:42,950 --> 00:04:51,550
+Bài toán thứ ba là phân cụm sản phẩm bằng K-Means. Nhóm thử k từ hai đến mười và chọn k bằng bảy theo chỉ số silhouette.
+
+39
+00:04:51,900 --> 00:05:02,700
+Bài toán thứ tư là phát hiện bất thường bằng Isolation Forest, đánh dấu hai trăm tám mươi ba sản phẩm có giá hoặc mức giảm khác thường, kèm lý do cụ thể.
+
+40
+00:05:03,050 --> 00:05:10,150
+Mô hình cho thấy thương hiệu là yếu tố quyết định giá, chiếm ba mươi tám phần trăm độ quan trọng.
+
+41
+00:05:11,500 --> 00:05:15,600
+Hệ thống có hai vai trò: quản trị viên và người dùng.
+
+42
+00:05:15,950 --> 00:05:23,450
+Khi đăng nhập bằng tài khoản người dùng thường, các nút thêm, sửa, xóa bị ẩn và menu quản trị biến mất.
+
+43
+00:05:23,800 --> 00:05:31,400
+Phân quyền được kiểm tra ở cả hai phía. Nếu gọi thẳng vào API, máy chủ vẫn từ chối với mã bốn trăm lẻ ba.
+
+44
+00:05:32,750 --> 00:05:38,850
+Dữ liệu có thể xuất ra tệp CSV ở bốn màn hình, và trang Báo cáo còn in được ra PDF.
+
+45
+00:05:39,200 --> 00:05:43,900
+Về an toàn dữ liệu, hệ thống có chức năng sao lưu và phục hồi.
+
+46
+00:05:44,250 --> 00:05:50,150
+Em tạo một bản sao lưu, sau đó cố tình xóa một sản phẩm để giả lập mất dữ liệu.
+
+47
+00:05:50,500 --> 00:05:58,200
+Khi phục hồi, hệ thống tự tạo một bản an toàn trước, rồi so sánh số dòng của mười ba bảng với bản sao lưu.
+
+48
+00:05:58,550 --> 00:06:04,650
+Kết quả hiển thị khớp một trăm phần trăm, và sản phẩm vừa xóa đã xuất hiện trở lại.
+
+49
+00:06:05,1000 --> 00:06:09,200
+Toàn bộ hệ thống được kiểm thử tự động.
+
+50
+00:06:09,550 --> 00:06:17,250
+Phía máy chủ có hai mươi mốt kiểm thử, phía giao diện có hai mươi mốt test case chạy thật trên trình duyệt.
+
+51
+00:06:17,600 --> 00:06:24,900
+Tất cả đều đạt, không có lỗi JavaScript nào. Ảnh chụp và video của từng bước được lưu làm bằng chứng.
+
+52
+00:06:26,250 --> 00:06:29,950
+Từ dữ liệu, nhóm em rút ra ba nhận định chính.
+
+53
+00:06:30,300 --> 00:06:38,600
+Thứ nhất, giảm giá là trạng thái bình thường chứ không phải ngoại lệ: bảy mươi sáu phần trăm sản phẩm đang giảm giá.
+
+54
+00:06:38,950 --> 00:06:48,250
+Thứ hai, thị trường rất phân mảnh. Có bốn trăm mười tám thương hiệu nhưng tám thương hiệu dẫn đầu chỉ chiếm hai mươi mốt phần trăm.
+
+55
+00:06:48,600 --> 00:06:56,900
+Thứ ba, điểm đánh giá gần như mất khả năng phân biệt chất lượng, vì gần chín mươi phần trăm đánh giá đều là năm sao.
+
+56
+00:06:58,250 --> 00:07:04,550
+Đối chiếu với yêu cầu của đề bài, nhóm em đã hoàn thành đầy đủ các nội dung bắt buộc.
+
+57
+00:07:04,900 --> 00:07:13,700
+Cả bốn chức năng điểm cộng cũng đã thực hiện: công cụ thu thập đa nguồn, tìm kiếm và lọc, CRUD, và kết xuất báo cáo ra tệp.
+
+58
+00:07:14,050 --> 00:07:23,150
+Nhóm cũng nhìn nhận các hạn chế: dữ liệu mới trải trên bốn ngày, và mô hình còn thiếu thông tin về thành phần, xuất xứ sản phẩm.
+
+59
+00:07:23,500 --> 00:07:31,700
+Hướng phát triển tiếp theo là bật lịch thu thập hằng ngày để tích lũy lịch sử giá đủ dài cho việc dự báo xu hướng.
+
+60
+00:07:33,050 --> 00:07:36,750
+Phần trình bày của nhóm em đến đây là kết thúc.
+
+61
+00:07:37,100 --> 00:07:43,200
+Nhóm em xin chân thành cảm ơn thầy cô đã hướng dẫn, và cảm ơn các bạn đã theo dõi.
+
+62
+00:07:43,550 --> 00:07:50,350
+Toàn bộ mã nguồn của đồ án được lưu công khai trên GitHub tại địa chỉ hiển thị trên màn hình.
+
+63
+00:07:50,700 --> 00:07:54,1000
+Nhóm em rất mong nhận được góp ý từ thầy cô và các bạn.
