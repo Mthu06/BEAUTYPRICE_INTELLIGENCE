@@ -1,0 +1,6 @@
+﻿retailer_id,retailer_name,country,currency,website_url,is_active,data_categories
+cocolux,Cocolux,Vietnam,VND,https://cocolux.com/,True,Kem chống nắng; Serum; Sữa rửa mặt; Sữa tắm; Tẩy trang; Tẩy tế bào chết
+guardian,Guardian,Vietnam,VND,https://www.guardian.com.vn/,True,Kem chống nắng; Serum; Sữa rửa mặt; Sữa tắm; Tẩy trang; Tẩy tế bào chết cơ thể
+hasaki,Hasaki,Vietnam,VND,https://hasaki.vn/,True,Kem chống nắng; Serum; Sữa rửa mặt; Sữa tắm; Tẩy trang mặt; Tẩy tế bào chết body
+the_gioi_skin_food,The Gioi Skin Food,Vietnam,VND,https://thegioiskinfood.com/,True,Kem chống nắng; Serum; Sữa rửa mặt; Sữa tắm; Tẩy trang; Tẩy tế bào chết
+watsons,Watsons,Vietnam,VND,https://www.watsons.vn/,True,Kem chống nắng; Serum; Sữa rửa mặt; Sữa tắm; Tẩy trang; Tẩy tế bào chết
