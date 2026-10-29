@@ -1007,7 +1007,10 @@ def favicon():
 
 @app.get("/<path:filename>")
 def frontend(filename):
-    if filename.startswith("api/") or os.path.splitext(filename)[1].lower() not in STATIC_EXTENSIONS:
+    if filename.startswith("api/"):
+        return fail(f"Máy chủ không có API /{filename}. Nếu vừa cập nhật code, hãy tắt cửa sổ server (Ctrl+C) rồi chạy lại run.bat.",
+                    404, code="API_NOT_FOUND")
+    if os.path.splitext(filename)[1].lower() not in STATIC_EXTENSIONS:
         return fail("Không tìm thấy!", 404)
     return send_from_directory(FRONTEND_DIR, filename)
 

@@ -12,6 +12,8 @@ Chỉ cần cài **Python 3.9+**. Không cần MySQL hay bất kỳ server CSDL 
 |---|---|
 | Windows | Nháy đúp `run.bat` |
 | macOS / Linux | `chmod +x run.sh && ./run.sh` |
+| Tắt server | `stop.bat` / `./stop.sh` (chỉ tắt tiến trình Python đang chạy ở cổng của dự án) |
+| Khởi động lại (sau khi cập nhật code) | `restart.bat` / `./restart.sh` |
 
 Script tự tạo môi trường ảo, cài Flask, khởi động server và mở **http://127.0.0.1:5000/**. Nếu chưa có `dataset/beautyprice.db`, backend tự dựng CSDL từ `dataset/raw/`.
 
@@ -86,7 +88,7 @@ Lưu ý: dựng lại CSDL sẽ xóa các thay đổi admin đã nhập qua webs
 
 ```
 ├─ readme.txt                 thông tin đề tài & nhóm (theo mẫu nộp bài)
-├─ run.bat / run.sh           chạy 1 lần bấm
+├─ run.bat / run.sh           chạy 1 lần bấm (stop / restart: tắt, khởi động lại)
 ├─ source-code/
 │  ├─ backend/                app.py (Flask + SQLite), requirements.txt
 │  ├─ frontend/               7 trang web, common.js, style.css, vendor/chart.umd.min.js
@@ -133,6 +135,7 @@ Tài liệu Giai đoạn 8:
 | Hiện tượng | Cách xử lý |
 |---|---|
 | "Không kết nối được backend" | Chạy `run.bat` / `run.sh`, mở bằng `http://127.0.0.1:5000/`, **không** mở file HTML trực tiếp |
+| Trang báo "Máy chủ đang chạy chưa có chức năng này" | Server đang chạy bản code cũ: chạy `restart.bat` / `./restart.sh` rồi tải lại trang |
 | Bị đẩy về trang đăng nhập | Server vừa khởi động lại nên phiên cũ hết hiệu lực. Đăng nhập lại |
 | Cổng 5000 bận (macOS AirPlay) | `BEAUTY_PORT=5050 ./run.sh` |
 | Muốn xem dữ liệu bằng giao diện | Mở `dataset/beautyprice.db` bằng DB Browser for SQLite |

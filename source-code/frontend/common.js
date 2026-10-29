@@ -69,7 +69,11 @@
             throw new Error(data.message || "Phiên đăng nhập đã hết hạn.");
         }
         if (!response.ok || data.status === "error" || data.success === false) {
-            const error = new Error(data.message || `Lỗi máy chủ (HTTP ${response.status}).`);
+            // API chưa có trên server đang chạy (thường do server bật từ trước khi cập nhật code)
+            const stale = response.status === 404 && (data.code === "API_NOT_FOUND" || data.message === "Không tìm thấy!");
+            const error = new Error(stale
+                ? `Máy chủ đang chạy chưa có chức năng này (${path.split("?")[0]}). Hãy tắt cửa sổ server (Ctrl+C) rồi chạy lại run.bat, sau đó tải lại trang.`
+                : data.message || `Lỗi máy chủ (HTTP ${response.status}).`);
             error.status = response.status;
             throw error;
         }

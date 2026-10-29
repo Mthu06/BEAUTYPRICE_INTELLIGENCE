@@ -19,7 +19,7 @@ echo [2/3] Cai thu vien (Flask, flask-cors) ...
 if defined BEAUTY_PORT (set "BEAUTY_PORT_OR_DEFAULT=%BEAUTY_PORT%") else (set "BEAUTY_PORT_OR_DEFAULT=5000")
 echo [3/3] Khoi dong backend tai http://127.0.0.1:%BEAUTY_PORT_OR_DEFAULT%/  (Ctrl+C de dung)
 echo       Neu chua co dataset\beautyprice.db, backend se tu dung CSDL tu dataset\raw.
-if not "%BEAUTY_NO_BROWSER%"=="1" start "" cmd /c "timeout /t 3 >nul & start http://127.0.0.1:%BEAUTY_PORT_OR_DEFAULT%/"
+if not "%BEAUTY_NO_BROWSER%"=="1" start "" cmd /c "ping -n 4 127.0.0.1 >nul & start http://127.0.0.1:%BEAUTY_PORT_OR_DEFAULT%/"
 ".venv\Scripts\python.exe" app.py
 goto :eof
 
