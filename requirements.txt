@@ -1,0 +1,6 @@
+# BEAUTYPRICE INTELLIGENCE
+
+beautifulsoup4
+selenium
+requests
+pandas

@@ -1,0 +1,23 @@
+{
+  "hasaki": {
+    "display_name": "Hasaki",
+    "base_url": "https://hasaki.vn/",
+    "status": "existing_pipeline",
+    "notes": "Check robots.txt and access conditions before each collection run."
+  },
+  "guardian": {
+    "display_name": "Guardian Vietnam",
+    "base_url": "https://www.guardian.com.vn/",
+    "status": "candidate_not_yet_validated"
+  },
+  "beautybox": {
+    "display_name": "Beauty Box",
+    "base_url": "https://beautybox.com.vn/",
+    "status": "candidate_not_yet_validated"
+  },
+  "watsons": {
+    "display_name": "Watsons Vietnam",
+    "base_url": "https://www.watsons.vn/",
+    "status": "candidate_not_yet_validated"
+  }
+}

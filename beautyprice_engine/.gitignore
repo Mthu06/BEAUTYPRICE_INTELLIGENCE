@@ -1,0 +1,66 @@
+# ==============================
+# BEAUTYPRICE INTELLIGENCE
+# ==============================
+
+# Môi trường Python
+.venv/
+venv/
+env/
+ENV/
+
+# Bộ nhớ đệm Python và file kiểm thử
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Thông tin bí mật và cấu hình môi trường cục bộ
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+*token*.json
+
+# Hồ sơ trình duyệt, cookie và phiên đăng nhập
+chrome_profile/
+**/chrome_profile/
+user-data-dir/
+**/user-data-dir/
+cookies.txt
+cookies*.txt
+*cookie*.json
+*session*.json
+
+# Dữ liệu thu thập và xử lý — giữ ở máy cục bộ
+data/raw/
+data/interim/
+data/processed/
+
+# Nhật ký, file tạm và file debug
+*.log
+*.tmp
+*.temp
+
+
+# Báo cáo và mô hình được tạo tự động
+output/logs/
+output/reports/
+output/models/
+
+
+# File của trình soạn thảo và hệ điều hành
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+
