@@ -1,0 +1,217 @@
+{
+  "run_at": "2026-10-29T05:25:05.998Z",
+  "base": "http://127.0.0.1:5162",
+  "page_errors": [],
+  "results": [
+    {
+      "id": "TC01",
+      "group": "Đăng nhập",
+      "name": "Truy cập trang khi chưa đăng nhập",
+      "steps": "Mở /dashboard.html khi chưa đăng nhập",
+      "expected": "Bị chuyển về trang đăng nhập",
+      "actual": "URL hiện tại: login.html",
+      "pass": true,
+      "shot": "screens/01_dang_nhap.png"
+    },
+    {
+      "id": "TC02",
+      "group": "Đăng nhập",
+      "name": "Đăng nhập sai mật khẩu",
+      "steps": "Nhập admin / matkhausai → Đăng nhập",
+      "expected": "Hiện thông báo lỗi, không vào hệ thống",
+      "actual": "Thông báo: \"Tài khoản hoặc mật khẩu không đúng!\"",
+      "pass": true,
+      "shot": "screens/02_dang_nhap_sai.png"
+    },
+    {
+      "id": "TC03",
+      "group": "Đăng nhập",
+      "name": "Đăng nhập admin thành công",
+      "steps": "Nhập admin / Admin@123 → Đăng nhập",
+      "expected": "Vào trang Tổng quan, sidebar ghi Quản trị viên và có menu Sao lưu",
+      "actual": "Trang: dashboard.html, vai trò: Quản trị viên, menu Sao lưu: có",
+      "pass": true,
+      "shot": "screens/03_tong_quan.png"
+    },
+    {
+      "id": "TC04",
+      "group": "Tổng quan",
+      "name": "Lọc dashboard theo nhà bán lẻ",
+      "steps": "Chọn Nhà bán lẻ = Hasaki",
+      "expected": "KPI Tổng sản phẩm bằng số sản phẩm Hasaki trong CSDL",
+      "actual": "KPI = 1.874, CSDL = 1.874",
+      "pass": true,
+      "shot": "screens/04_tong_quan_loc_hasaki.png"
+    },
+    {
+      "id": "TC05",
+      "group": "Tra cứu",
+      "name": "Tìm kiếm không dấu",
+      "steps": "Gõ \"kem chong nang\" vào ô tìm kiếm",
+      "expected": "Có kết quả; sản phẩm khớp từ khóa trên tên/thương hiệu/danh mục, không phân biệt dấu (dòng đầu chứa \"kem chống nắng\")",
+      "actual": "Hiển thị 1–50 / 1.274 sản phẩm (lọc từ 6.413); dòng đầu: \"[50g] Kem Chống Nắng The Saem Kiềm Dầu, Nâng Tone Cho Da Sáng Hồng Pink Sun Cream EX SPF50+/PA++++\"",
+      "pass": true,
+      "shot": "screens/05_tra_cuu_tim_kiem.png"
+    },
+    {
+      "id": "TC06",
+      "group": "Tra cứu",
+      "name": "Xem chi tiết và lịch sử giá",
+      "steps": "Tìm một sản phẩm đã đổi giá giữa các lần thu thập → bấm tên sản phẩm",
+      "expected": "Mở cửa sổ chi tiết, biểu đồ Lịch sử giá có từ 2 điểm trở lên",
+      "actual": "Sản phẩm \"[HSD 01/2027] Gel Rửa Mặt I'm from Từ Ngải Cứu Sạc\": biểu đồ có 2 điểm",
+      "pass": true,
+      "shot": "screens/06_chi_tiet_lich_su_gia.png"
+    },
+    {
+      "id": "TC07",
+      "group": "CRUD",
+      "name": "Thêm sản phẩm sai dữ liệu",
+      "steps": "Thêm sản phẩm: giá hiện tại 200.000, giá niêm yết 150.000 → Lưu",
+      "expected": "Báo lỗi \"Giá niêm yết...\" trong form, không lưu",
+      "actual": "Lỗi: \"Giá niêm yết phải lớn hơn hoặc bằng giá hiện tại.\", form vẫn mở: true",
+      "pass": true,
+      "shot": "screens/07_them_san_pham_loi.png"
+    },
+    {
+      "id": "TC08",
+      "group": "CRUD",
+      "name": "Thêm sản phẩm hợp lệ",
+      "steps": "Sửa giá niêm yết thành 250.000 → Lưu",
+      "expected": "Thông báo thêm thành công, % giảm tự tính = 20%, tổng sản phẩm tăng 1",
+      "actual": "\"Thêm sản phẩm thành công!\", % giảm hiển thị: 20%, tổng 6413 → 6414",
+      "pass": true,
+      "shot": "screens/08_them_san_pham_ok.png"
+    },
+    {
+      "id": "TC09",
+      "group": "CRUD",
+      "name": "Sửa giá sản phẩm",
+      "steps": "Tìm sản phẩm vừa thêm → Sửa → giá hiện tại 180.000 → Lưu",
+      "expected": "Lưu thành công; lịch sử giá có thêm 1 lần cập nhật (2 snapshot)",
+      "actual": "\"Cập nhật sản phẩm thành công!\", số snapshot: 2, giá: 200000 → 180000",
+      "pass": true,
+      "shot": "screens/09_sua_san_pham.png"
+    },
+    {
+      "id": "TC10",
+      "group": "CRUD",
+      "name": "Xóa sản phẩm",
+      "steps": "Bấm Xóa ở sản phẩm vừa thêm → Xác nhận",
+      "expected": "Thông báo xóa thành công, sản phẩm không còn trong CSDL",
+      "actual": "\"Xóa sản phẩm thành công!\", gọi lại API: HTTP 404",
+      "pass": true,
+      "shot": "screens/10_xoa_san_pham.png"
+    },
+    {
+      "id": "TC11",
+      "group": "Xuất báo cáo",
+      "name": "Xuất CSV danh sách đang lọc",
+      "steps": "Ở trang Tra cứu, tìm \"serum\" → Xuất CSV",
+      "expected": "Tải về tệp CSV có dòng tiêu đề và đúng số sản phẩm đang lọc",
+      "actual": "Tệp tra-cuu-san-pham-2026-10-29.csv: 1542 dòng dữ liệu; trên trang: Hiển thị 1–50 / 1.542 sản phẩm (lọc từ 6.413)",
+      "pass": true,
+      "shot": "screens/11_xuat_csv_tra_cuu.png"
+    },
+    {
+      "id": "TC12",
+      "group": "Mô hình",
+      "name": "Trang Phân khúc K-Means",
+      "steps": "Mở phankhuc.html",
+      "expected": "Hiện số cụm k, 4 biểu đồ, thẻ đặc điểm cụm",
+      "actual": "\"Phân khúc sản phẩm (K-Means)\": 4 biểu đồ, 0 giá trị lỗi (NaN/undefined)",
+      "pass": true,
+      "shot": "screens/12_phan_khuc.png"
+    },
+    {
+      "id": "TC13",
+      "group": "Mô hình",
+      "name": "Trang Dự đoán giá",
+      "steps": "Mở dudoan.html",
+      "expected": "Hiện MAE/RMSE/R²/MAPE, so sánh mô hình, ma trận nhầm lẫn",
+      "actual": "\"Dự đoán giá (học có giám sát)\": 5 biểu đồ, 0 giá trị lỗi (NaN/undefined)",
+      "pass": true,
+      "shot": "screens/13_du_doan.png"
+    },
+    {
+      "id": "TC14",
+      "group": "Mô hình",
+      "name": "Trang Phát hiện bất thường",
+      "steps": "Mở batthuong.html",
+      "expected": "Hiện số sản phẩm bất thường, biểu đồ, danh sách và lý do",
+      "actual": "\"Phát hiện bất thường (Isolation Forest)\": 3 biểu đồ, 0 giá trị lỗi (NaN/undefined)",
+      "pass": true,
+      "shot": "screens/14_bat_thuong.png"
+    },
+    {
+      "id": "TC15",
+      "group": "Xuất báo cáo",
+      "name": "Báo cáo thống kê: xuất CSV và PDF",
+      "steps": "Mở Báo cáo → Xuất CSV; In / Lưu PDF",
+      "expected": "Tải về CSV nhiều phần; tạo được PDF báo cáo",
+      "actual": "CSV: bao-cao-thong-ke-2026-10-29.csv; PDF: bao_cao_thong_ke.pdf (404 KB)",
+      "pass": true,
+      "shot": "screens/15_bao_cao.png"
+    },
+    {
+      "id": "TC16",
+      "group": "Sao lưu & phục hồi",
+      "name": "Tạo bản sao lưu",
+      "steps": "Admin mở Sao lưu & phục hồi → Tạo bản sao lưu",
+      "expected": "Bản sao lưu mới xuất hiện, kiểm tra toàn vẹn = Toàn vẹn, số dòng khớp CSDL hiện tại",
+      "actual": "\"Đã sao lưu và kiểm tra bản sao: beautyprice_20261029T122434.db\"; số bản: 0 → 1; integrity=ok; số dòng khớp hiện tại: true",
+      "pass": true,
+      "shot": "screens/16_sao_luu.png"
+    },
+    {
+      "id": "TC17",
+      "group": "Sao lưu & phục hồi",
+      "name": "Phục hồi thực tế sau khi dữ liệu bị thay đổi",
+      "steps": "Xóa 1 sản phẩm (giả lập mất dữ liệu) → Phục hồi bản vừa sao lưu → Xác nhận",
+      "expected": "Kết quả kiểm tra \"khớp 100%\" ở cả 13 bảng; sản phẩm đã xóa xuất hiện lại",
+      "actual": "Đã xóa trước khi phục hồi: true; kết quả: \"Đã kiểm tra: khớp 100%\" (13 bảng); sản phẩm \"[HSD 01/2027] Sữa Rửa Mặt B.O.M Từ 8 Loạ\" có lại: true",
+      "pass": true,
+      "shot": "screens/17b_ket_qua_phuc_hoi.png"
+    },
+    {
+      "id": "TC18",
+      "group": "Phân quyền",
+      "name": "Tài khoản User chỉ được xem",
+      "steps": "Đăng nhập user / User@123 → mở Tra cứu",
+      "expected": "Không có nút Thêm/Sửa/Xóa, không có menu Sao lưu",
+      "actual": "Nút Thêm: ẩn, nút Sửa/Xóa: 0, menu Sao lưu: không",
+      "pass": true,
+      "shot": "screens/18_user_tra_cuu.png"
+    },
+    {
+      "id": "TC19",
+      "group": "Phân quyền",
+      "name": "User gọi API quản trị trực tiếp",
+      "steps": "Từ trình duyệt của user gọi DELETE /api/products/<id> và GET /api/backups",
+      "expected": "Backend từ chối với HTTP 403",
+      "actual": "DELETE: HTTP 403; /api/backups: HTTP 403; trang Sao lưu: \"Chức năng sao lưu & phục hồi chỉ dành cho quản trị viên.\"",
+      "pass": true,
+      "shot": "screens/19_user_khong_co_quyen.png"
+    },
+    {
+      "id": "TC20",
+      "group": "Đăng nhập",
+      "name": "Đăng xuất",
+      "steps": "Bấm nút Đăng xuất → mở lại /baocao.html",
+      "expected": "Về trang đăng nhập; mở lại trang bị chuyển về đăng nhập",
+      "actual": "Sau đăng xuất: login.html; mở lại báo cáo: login.html",
+      "pass": true,
+      "shot": null
+    },
+    {
+      "id": "TC21",
+      "group": "Giao diện",
+      "name": "Hiển thị trên điện thoại",
+      "steps": "Mở Tổng quan ở màn hình 390px",
+      "expected": "Không tràn ngang, có nút menu thu gọn",
+      "actual": "Tràn ngang: false, nút menu: có",
+      "pass": true,
+      "shot": "screens/21_mobile.png"
+    }
+  ]
+}

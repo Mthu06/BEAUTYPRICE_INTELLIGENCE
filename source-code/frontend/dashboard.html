@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng quan | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="vendor/chart.umd.min.js" defer></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Tổng quan thị trường</h1>
+                <p>Giá, khuyến mãi và cơ cấu sản phẩm mỹ phẩm tại 5 nhà bán lẻ trực tuyến.</p>
+            </div>
+            <div class="page-actions">
+                <button type="button" class="btn btn-outline" id="reloadBtn">Tải lại</button>
+            </div>
+        </header>
+
+        <div class="stack">
+        <div class="notice notice-bad" id="loadError" role="alert" hidden></div>
+
+        <!-- Bộ lọc: áp dụng cho mọi KPI, biểu đồ và nhận định -->
+        <section class="card">
+            <div class="filters">
+                <div class="field">
+                    <label for="retailerFilter">Nhà bán lẻ</label>
+                    <select class="select" id="retailerFilter"><option value="">Tất cả nhà bán lẻ</option></select>
+                </div>
+                <div class="field">
+                    <label for="categoryFilter">Danh mục</label>
+                    <select class="select" id="categoryFilter"><option value="">Tất cả danh mục</option></select>
+                </div>
+                <div class="field">
+                    <label for="brandFilter">Thương hiệu</label>
+                    <select class="select" id="brandFilter"><option value="">Tất cả thương hiệu</option></select>
+                </div>
+                <div class="field">
+                    <label for="priceFilter">Khoảng giá</label>
+                    <select class="select" id="priceFilter"><option value="">Tất cả mức giá</option></select>
+                </div>
+                <div class="field">
+                    <span class="field-label" id="filterSummary">&nbsp;</span>
+                    <button type="button" class="btn btn-outline" id="resetFilters" disabled>Đặt lại bộ lọc</button>
+                </div>
+            </div>
+        </section>
+        </div>
+
+        <!-- KPI -->
+        <section class="grid cols-4 mt">
+            <div class="card kpi">
+                <div class="kpi-icon" data-icon="box"></div>
+                <div><div class="kpi-label">Tổng sản phẩm</div><div class="kpi-value skeleton" id="kpiTotal">—</div><div class="kpi-sub" id="kpiTotalSub">&nbsp;</div></div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon blue" data-icon="tag"></div>
+                <div><div class="kpi-label">Số thương hiệu</div><div class="kpi-value skeleton" id="kpiBrands">—</div><div class="kpi-sub" id="kpiBrandsSub">&nbsp;</div></div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon green" data-icon="layers"></div>
+                <div><div class="kpi-label">Giá trung vị</div><div class="kpi-value skeleton" id="kpiMedian">—</div><div class="kpi-sub" id="kpiMedianSub">&nbsp;</div></div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon orange" data-icon="percent"></div>
+                <div><div class="kpi-label">Đang giảm giá</div><div class="kpi-value skeleton" id="kpiDiscount">—</div><div class="kpi-sub" id="kpiDiscountSub">&nbsp;</div></div>
+            </div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Tỷ trọng sản phẩm theo nhà bán lẻ</h2><p>Số sản phẩm và tỷ lệ % trên tổng đang lọc</p></div></div>
+                <div class="chart-box"><canvas id="retailerChart" aria-label="Biểu đồ tròn tỷ trọng sản phẩm theo nhà bán lẻ" role="img"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Giá trung vị theo ngày thu thập</h2><p>Từ toàn bộ lịch sử giá; chỉ áp dụng bộ lọc nhà bán lẻ</p></div></div>
+                <div class="chart-box"><canvas id="trendChart" aria-label="Biểu đồ đường giá trung vị theo ngày" role="img"></canvas></div>
+                <div class="chart-note" id="trendNote"></div>
+            </div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Phân bố theo khoảng giá</h2><p>Số sản phẩm trong mỗi khoảng giá hiện tại</p></div></div>
+                <div class="chart-box"><canvas id="priceChart" aria-label="Biểu đồ cột phân bố khoảng giá" role="img"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Giá trung vị theo danh mục</h2><p>Sắp xếp từ cao đến thấp</p></div></div>
+                <div class="chart-box"><canvas id="categoryChart" aria-label="Biểu đồ cột ngang giá trung vị theo danh mục" role="img"></canvas></div>
+            </div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Mức giảm giá theo nhà bán lẻ</h2><p>Tỷ lệ % sản phẩm trong từng nhóm mức giảm</p></div></div>
+                <div class="chart-box"><canvas id="discountChart" aria-label="Biểu đồ cột chồng mức giảm giá theo nhà bán lẻ" role="img"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Top 8 thương hiệu</h2><p>Theo số sản phẩm đang bán (tỷ lệ % trên tổng đang lọc)</p></div></div>
+                <div class="bar-list" id="brandList"></div>
+                <div class="chart-note" id="brandNote"></div>
+            </div>
+        </section>
+
+        <section class="card mt">
+            <div class="card-head"><div><h2>Nhận định nhanh</h2><p>Tự động tính từ dữ liệu đang lọc</p></div></div>
+            <ul class="insights" id="insightList"></ul>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+</body>
+</html>

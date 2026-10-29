@@ -1,0 +1,7 @@
+{
+  "name": "beautyprice-e2e",
+  "private": true,
+  "description": "Test case giao diện (Puppeteer + Chrome có sẵn trên máy)",
+  "scripts": { "test": "node testcases.js http://127.0.0.1:5000 ../../../reports/demo" },
+  "dependencies": { "puppeteer-core": "22.15.0" }
+}

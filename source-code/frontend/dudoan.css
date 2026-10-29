@@ -1,0 +1,60 @@
+/* dudoan.css - chỉ phần riêng của trang Dự đoán giá (phần chung ở style.css) */
+
+/* tiêu đề từng phần có đánh số */
+.section { margin-top: 30px; }
+.section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.section-no {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 700;
+}
+.section-head h2 { margin: 0; font-size: 18px; font-weight: 750; }
+.section-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.page-head + .notice { margin-bottom: 8px; }
+
+.select-sm { width: auto; height: 32px; font-size: 13px; padding-left: 10px; }
+.chart-box.is-loading { background: #f1f2f6; border-radius: 10px; }
+
+/* nhóm giá: màu theo BP.COLORS.segment */
+.seg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 500; }
+.seg::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--seg); }
+.seg-low { --seg: var(--seq-low); }
+.seg-mid { --seg: var(--seq-mid); }
+.seg-high { --seg: var(--seq-high); }
+
+/* ma trận nhầm lẫn: thang xanh tuần tự theo tỷ lệ trong hàng */
+.cm { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 13px; }
+.cm th { font-weight: 600; color: var(--text-2); font-size: 12px; padding: 6px 8px; text-align: center; white-space: nowrap; }
+.cm th[scope="row"] { text-align: left; }
+.cm td { text-align: center; padding: 12px 6px; border-radius: 8px; font-variant-numeric: tabular-nums; color: var(--text); }
+.cm td b { display: block; font-size: 17px; }
+.cm td small { font-size: 11.5px; }
+.cm td.diag { box-shadow: inset 0 0 0 2px var(--text); }
+.cm td.total { background: var(--surface-2); color: var(--text-2); }
+.cm .h0 { background: #f3f7fd; }
+.cm .h1 { background: #dbe8fa; }
+.cm .h2 { background: #b5d0f3; }
+.cm .h3 { background: #7fb0ea; }
+.cm .h4 { background: #2a78d6; color: #fff; }
+.cm .h5 { background: #184f95; color: #fff; }
+.cm-skeleton { height: 210px; }
+
+/* bảng dự đoán */
+.table-filters { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.table .err-pct { display: block; font-size: 12px; color: var(--muted); }
+.table .err-high { color: var(--bad); font-weight: 600; }
+.table .name-cell { min-width: 240px; }
+
+@media (max-width: 600px) {
+    .section-head h2 { font-size: 16px; }
+    .card-head { flex-wrap: wrap; }
+    /* KPI 2 cột, bỏ biểu tượng cho gọn */
+    .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .kpi-row .card { padding: 14px; }
+    .kpi-row .kpi-icon { display: none; }
+    .kpi-row .kpi-value { font-size: 20px; }
+    .cm { border-spacing: 3px; font-size: 12px; }
+    .cm th { white-space: normal; padding: 4px; }
+    .cm td { padding: 9px 2px; }
+    .cm td b { font-size: 15px; }
+    .cm .cm-total { display: none; }
+}

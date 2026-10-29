@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phân khúc sản phẩm | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="phankhuc.css">
+    <script src="vendor/chart.umd.min.js" defer></script>
+    <script src="phankhuc.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Phân khúc sản phẩm (K-Means)</h1>
+                <p>Nhóm các sản phẩm có giá, mức giảm, đánh giá, danh mục và nhà bán lẻ tương tự nhau bằng thuật toán K-Means.</p>
+            </div>
+            <div class="page-actions"><span class="badge" id="trainedAt">Huấn luyện: —</span></div>
+        </header>
+
+        <div id="pageError"></div>
+
+        <section class="grid cols-4">
+            <div class="card kpi"><div class="kpi-icon blue" data-icon="box"></div><div>
+                <div class="kpi-label">Tổng sản phẩm</div><div class="kpi-value" id="kpiTotal">—</div><div class="kpi-sub">Đang có trong CSDL</div></div></div>
+            <div class="card kpi"><div class="kpi-icon" data-icon="clusters"></div><div>
+                <div class="kpi-label">Số cụm k</div><div class="kpi-value" id="kpiK">—</div><div class="kpi-sub" id="kpiKSub">Silhouette —</div></div></div>
+            <div class="card kpi"><div class="kpi-icon green" data-icon="layers"></div><div>
+                <div class="kpi-label">Cụm lớn nhất</div><div class="kpi-value" id="kpiLargest">—</div><div class="kpi-sub" id="kpiLargestSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon orange" data-icon="info"></div><div>
+                <div class="kpi-label">Sản phẩm chưa phân cụm</div><div class="kpi-value" id="kpiUnclustered">—</div><div class="kpi-sub" id="kpiUnclusteredSub">—</div></div></div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Số sản phẩm theo cụm</h2><p>Mỗi cột là một cụm; số trên cột là số sản phẩm.</p></div></div>
+                <div class="chart-box"><canvas id="sizeChart" aria-label="Số sản phẩm theo cụm"></canvas></div>
+                <p class="chart-note">Kích thước cụm chênh lệch lớn là bình thường với K-Means: thuật toán tối ưu khoảng cách tới tâm cụm, không chia đều số lượng.</p>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Chọn số cụm k theo silhouette</h2><p>Thử k = 2…10, chọn k có silhouette cao nhất.</p></div></div>
+                <div class="chart-box"><canvas id="silChart" aria-label="Silhouette theo số cụm k"></canvas></div>
+                <p class="chart-note" id="silNote"></p>
+            </div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Giá trung vị và mức giảm trung vị theo cụm</h2><p>Mỗi bong bóng là một cụm, kích thước theo số sản phẩm.</p></div></div>
+                <div class="chart-box lg"><canvas id="bubbleChart" aria-label="Giá trung vị và mức giảm trung vị theo cụm"></canvas></div>
+                <p class="chart-note" id="bubbleNote"></p>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Cơ cấu nhà bán lẻ trong từng cụm</h2><p>Tỷ trọng sản phẩm của mỗi nhà bán lẻ trong cụm (100%).</p></div></div>
+                <div class="chart-box lg"><canvas id="retailerChart" aria-label="Cơ cấu nhà bán lẻ trong từng cụm"></canvas></div>
+            </div>
+        </section>
+
+        <section class="card mt">
+            <div class="card-head"><div><h2>Đặc điểm từng cụm</h2><p>Số liệu trung vị của từng cụm; mô tả tự sinh khi so với trung vị toàn bộ sản phẩm.</p></div></div>
+            <div class="cluster-grid" id="clusterCards"></div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Đặc trưng dùng để phân cụm</h2><p>Các cột đầu vào của mô hình K-Means (lấy từ lần huấn luyện gần nhất).</p></div></div>
+                <div class="stat-tiles" id="modelTiles"></div>
+                <div id="featureList" class="mt"></div>
+                <p class="hint mt">Số được chuẩn hoá (StandardScaler, giá trị thiếu thay bằng trung vị); biến phân loại được mã hoá one-hot, nhóm hiếm (&lt; 20 sản phẩm) gộp chung.</p>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Nhận định</h2><p>Rút ra tự động từ kết quả phân cụm.</p></div></div>
+                <ul class="insights" id="insights"></ul>
+            </div>
+        </section>
+
+        <section class="card card-flush mt">
+            <div class="card-head"><div><h2>Sản phẩm theo cụm</h2><p id="tableInfo">—</p></div></div>
+            <div class="filters table-filters">
+                <div class="field"><label for="clusterFilter">Cụm</label><select class="select" id="clusterFilter"><option value="">Tất cả cụm</option></select></div>
+                <div class="field span-search"><label for="searchInput">Tìm sản phẩm</label>
+                    <div class="input-icon" data-icon="search"><input class="input" id="searchInput" type="search" placeholder="Tên sản phẩm hoặc thương hiệu..."></div></div>
+            </div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Sản phẩm</th><th>Thương hiệu</th><th>Nhà bán lẻ</th><th>Danh mục</th><th class="num">Giá</th><th class="num">Giảm</th><th>Cụm</th></tr></thead>
+                    <tbody id="productBody"><tr><td colspan="7"></td></tr></tbody>
+                </table>
+            </div>
+            <div class="table-foot"><span class="muted small" id="pageInfo"></span><div class="pagination" id="pagination"></div></div>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+</body>
+</html>

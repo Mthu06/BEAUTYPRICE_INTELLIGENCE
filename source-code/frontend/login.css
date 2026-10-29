@@ -1,0 +1,111 @@
+/* login.css - trang Đăng nhập (không có sidebar). Dùng token & thành phần từ style.css. */
+
+.login {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+/* ---------------------------------------------------------------- cột thương hiệu */
+.login-brand {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding: 40px 56px;
+    color: #fff;
+    background: linear-gradient(135deg, #6d63ff 0%, #4f46e5 50%, #2a78d6 100%);
+}
+/* họa tiết nền: hai vầng sáng + lưới chấm mờ */
+.login-brand::before,
+.login-brand::after { content: ""; position: absolute; pointer-events: none; }
+.login-brand::before {
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, .14) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(160deg, #000 10%, transparent 70%);
+}
+.login-brand::after {
+    width: 520px; height: 520px; right: -180px; bottom: -200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .22), transparent 65%);
+}
+.login-brand > * { position: relative; z-index: 1; }
+
+.login-logo { display: flex; align-items: center; gap: 12px; }
+.login-logo .brand-mark { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .3); }
+.login-logo .brand-name { font-weight: 700; font-size: 15px; }
+.login-logo .brand-sub { font-size: 10.5px; letter-spacing: 2.4px; text-transform: uppercase; color: rgba(255, 255, 255, .7); }
+
+.login-hero { margin: auto 0; max-width: 520px; }
+.login-hero h1 { margin: 0; font-size: 40px; line-height: 1.12; font-weight: 800; letter-spacing: -.8px; }
+.login-hero > p { margin: 14px 0 0; font-size: 17px; color: rgba(255, 255, 255, .85); }
+
+.login-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 32px 0 0; }
+.login-stats div {
+    padding: 14px 16px; border-radius: 14px;
+    background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22);
+    backdrop-filter: blur(4px);
+}
+.login-stats dt { font-size: 12.5px; color: rgba(255, 255, 255, .78); }
+.login-stats dd { margin: 2px 0 0; font-size: 26px; font-weight: 750; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+
+.login-features { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 10px; }
+.login-features li { display: flex; align-items: center; gap: 10px; color: rgba(255, 255, 255, .9); }
+.login-features li::before {
+    content: ""; width: 20px; height: 20px; flex: none; border-radius: 50%;
+    background: rgba(255, 255, 255, .18) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
+}
+
+.login-retailers { margin: 0; font-size: 12.5px; letter-spacing: .3px; color: rgba(255, 255, 255, .7); }
+
+/* ---------------------------------------------------------------- cột biểu mẫu */
+.login-panel {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px 24px;
+}
+.login-card { width: min(400px, 100%); margin: auto 0; }
+.login-card h2 { margin: 0; font-size: 28px; font-weight: 750; letter-spacing: -.4px; }
+.login-lead { margin: 6px 0 28px; color: var(--text-2); }
+
+.login-form { display: flex; flex-direction: column; gap: 16px; }
+.login-form .input { height: 44px; }
+.password-wrap { position: relative; }
+.password-wrap .input { padding-right: 46px; }
+.toggle-password { position: absolute; right: 5px; top: 5px; color: var(--muted); }
+.toggle-password:hover { color: var(--text); background: var(--surface-2); }
+.toggle-password.active { color: var(--brand); }
+.login-form .form-error { margin: -4px 0 0; }
+.login-form .form-error:empty { min-height: 0; margin: 0; }
+.login-submit { height: 46px; font-size: 15px; }
+
+.login-demo { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border); }
+.login-demo-title { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+.login-demo-list { display: grid; gap: 8px; }
+.demo-account {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 12px; border-radius: 10px; cursor: pointer; text-align: left;
+    background: var(--surface); border: 1px dashed var(--border-strong); color: var(--text-2);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px;
+}
+.demo-account b { color: var(--text); }
+.demo-account .badge { margin-left: auto; font-family: var(--font); }
+.demo-account:hover { border-color: var(--brand); background: var(--brand-50); }
+
+.login-panel .page-foot { margin-top: 24px; }
+
+/* ---------------------------------------------------------------- màn hình hẹp: 1 cột */
+@media (max-width: 960px) {
+    .login { grid-template-columns: minmax(0, 1fr); }
+    .login-brand { gap: 22px; padding: 24px 20px 28px; }
+    .login-hero { margin: 0; }
+    .login-hero h1 { font-size: 26px; }
+    .login-hero > p { font-size: 15px; margin-top: 8px; }
+    .login-stats { margin-top: 18px; gap: 8px; }
+    .login-stats div { padding: 10px 12px; }
+    .login-stats dd { font-size: 20px; }
+    .login-logo, .login-features, .login-retailers { display: none; }
+    .login-panel { padding: 28px 20px 20px; }
+    .login-card h2 { font-size: 24px; }
+    .login-lead { margin-bottom: 20px; }
+}

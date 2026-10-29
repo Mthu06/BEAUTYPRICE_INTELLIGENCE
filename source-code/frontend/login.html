@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="login.css">
+    <script src="login.js" defer></script>
+</head>
+<body class="login-page">
+<main class="login">
+    <!-- Cột trái: giới thiệu hệ thống -->
+    <section class="login-brand" aria-label="Giới thiệu">
+        <div class="login-logo">
+            <span class="brand-mark">B</span>
+            <span><span class="brand-name">BeautyPrice</span><br><span class="brand-sub">Intelligence</span></span>
+        </div>
+
+        <div class="login-hero">
+            <h1>BeautyPrice Intelligence</h1>
+            <p>Theo dõi &amp; phân tích giá mỹ phẩm từ 5 nhà bán lẻ.</p>
+
+            <dl class="login-stats">
+                <div><dt>Nhà bán lẻ</dt><dd>5</dd></div>
+                <div><dt>Sản phẩm</dt><dd>5.657</dd></div>
+                <div><dt>Đánh giá</dt><dd>6.673</dd></div>
+            </dl>
+
+            <ul class="login-features">
+                <li>Tổng quan thị trường và tra cứu dữ liệu giá</li>
+                <li>Phân khúc sản phẩm bằng K-Means</li>
+                <li>Dự đoán giá và phát hiện giá bất thường</li>
+                <li>Báo cáo thống kê, xuất dữ liệu CSV</li>
+            </ul>
+        </div>
+
+        <p class="login-retailers">Hasaki · Watsons · Guardian · Cocolux · The Gioi Skin Food</p>
+    </section>
+
+    <!-- Cột phải: biểu mẫu đăng nhập -->
+    <section class="login-panel">
+        <div class="login-card">
+            <h2>Đăng nhập</h2>
+            <p class="login-lead">Chào mừng trở lại! Nhập tài khoản để vào hệ thống.</p>
+
+            <form id="loginForm" class="login-form" novalidate>
+                <div class="field">
+                    <label for="username">Tên đăng nhập</label>
+                    <input class="input" type="text" id="username" placeholder="Nhập tên đăng nhập" autocomplete="username" autofocus>
+                </div>
+
+                <div class="field">
+                    <label for="password">Mật khẩu</label>
+                    <div class="password-wrap">
+                        <input class="input" type="password" id="password" placeholder="Nhập mật khẩu" autocomplete="current-password">
+                        <button type="button" id="togglePassword" class="icon-btn toggle-password" aria-label="Hiện mật khẩu" aria-pressed="false"></button>
+                    </div>
+                </div>
+
+                <p id="loginError" class="form-error" role="alert"></p>
+
+                <button type="submit" id="loginButton" class="btn btn-primary login-submit">Đăng nhập</button>
+            </form>
+
+            <div class="login-demo">
+                <div class="login-demo-title">Tài khoản demo (đồ án) — bấm để điền nhanh</div>
+                <div class="login-demo-list">
+                    <button type="button" class="demo-account" data-user="admin" data-pass="Admin@123">
+                        <b>admin</b> / Admin@123 <span class="badge badge-brand">Quản trị</span>
+                    </button>
+                    <button type="button" class="demo-account" data-user="user" data-pass="User@123">
+                        <b>user</b> / User@123 <span class="badge">Người dùng</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </section>
+</main>
+</body>
+</html>

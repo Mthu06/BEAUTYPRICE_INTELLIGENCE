@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sao lưu & phục hồi | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <script src="saoluu.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Sao lưu & phục hồi dữ liệu</h1>
+                <p>Sao lưu toàn bộ CSDL SQLite, phục hồi khi cần và kiểm tra dữ liệu sau phục hồi. Chỉ dành cho quản trị viên.</p>
+            </div>
+            <div class="page-actions">
+                <button type="button" class="btn btn-outline" id="reloadBtn"></button>
+                <button type="button" class="btn btn-primary" id="backupBtn"></button>
+            </div>
+        </header>
+
+        <div id="pageNotice"></div>
+
+        <section class="grid cols-4">
+            <div class="card kpi"><div class="kpi-icon" id="icDb"></div><div>
+                <div class="kpi-label">CSDL hiện tại</div><div class="kpi-value" id="kpiSize">—</div><div class="kpi-sub" id="kpiPath">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon green" id="icIntegrity"></div><div>
+                <div class="kpi-label">Kiểm tra toàn vẹn</div><div class="kpi-value" id="kpiIntegrity">—</div><div class="kpi-sub" id="kpiFk">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon blue" id="icBox"></div><div>
+                <div class="kpi-label">Sản phẩm / snapshot giá</div><div class="kpi-value" id="kpiRows">—</div><div class="kpi-sub" id="kpiRowsSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon orange" id="icCount"></div><div>
+                <div class="kpi-label">Số bản sao lưu</div><div class="kpi-value" id="kpiBackups">—</div><div class="kpi-sub" id="kpiLast">—</div></div></div>
+        </section>
+
+        <section class="card card-flush mt">
+            <div class="card-head"><div><h2>Danh sách bản sao lưu</h2><p id="backupDir">Lưu trong dataset/backups/</p></div></div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Bản sao lưu</th><th>Thời điểm</th><th>Người tạo</th><th class="num">Dung lượng</th>
+                        <th class="num">Sản phẩm / snapshot</th><th>Kiểm tra</th><th>Thao tác</th></tr></thead>
+                    <tbody id="backupTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card mt" id="resultCard" hidden>
+            <div class="card-head"><div><h2>Kết quả kiểm tra sau phục hồi</h2><p id="resultSub"></p></div><span id="resultBadge"></span></div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Bảng</th><th class="num">Trong bản sao lưu</th><th class="num">Sau phục hồi</th><th>Khớp</th></tr></thead>
+                    <tbody id="resultTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card mt">
+            <div class="card-head"><div><h2>Quy trình</h2><p>Phục hồi luôn được kiểm tra, không chỉ tạo tệp sao lưu.</p></div></div>
+            <ul class="insights">
+                <li><span class="ins-no">1</span><span><b>Sao lưu</b> bằng SQLite Online Backup API (an toàn khi website đang chạy), rồi kiểm tra ngay bản sao: <b>integrity_check</b>, số dòng từng bảng, mã băm <b>SHA-256</b>.</span></li>
+                <li><span class="ins-no">2</span><span><b>Trước khi phục hồi</b>: đối chiếu SHA-256 (từ chối nếu tệp bị sửa sau khi tạo), kiểm tra toàn vẹn bản sao lưu, và <b>tự sao lưu dữ liệu hiện tại</b> (đuôi <code>_truoc-phuc-hoi</code>) để có thể quay lại.</span></li>
+                <li><span class="ins-no">3</span><span><b>Sau khi phục hồi</b>: kiểm tra toàn vẹn, khóa ngoại và so sánh số dòng của 13 bảng với bản sao lưu. Kết quả hiện ở bảng phía trên.</span></li>
+            </ul>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+
+<div class="modal-overlay" id="confirmModal" hidden>
+    <div class="modal narrow" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="modal-head"><div><h2 id="confirmTitle">Phục hồi dữ liệu?</h2><p id="confirmName"></p></div></div>
+        <div class="modal-body">
+            <div class="notice notice-warn" id="confirmWarn"></div>
+            <p class="hint">Mọi thay đổi sau thời điểm sao lưu sẽ bị thay thế. Hệ thống tự tạo một bản sao lưu dữ liệu hiện tại trước khi phục hồi.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-outline" id="cancelRestore">Hủy</button>
+            <button type="button" class="btn btn-danger" id="confirmRestore">Phục hồi</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

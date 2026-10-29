@@ -1,0 +1,30 @@
+/* phankhuc.css - phần riêng của trang Phân khúc (dùng chung style.css). */
+
+/* màu cụm = BP.COLORS.series[cluster] (chấm màu dùng class thay cho inline style) */
+.cl-0 { background: var(--series-1); } .cl-1 { background: var(--series-2); }
+.cl-2 { background: var(--series-3); } .cl-3 { background: var(--series-4); }
+.cl-4 { background: var(--series-5); } .cl-5 { background: var(--series-6); }
+.cl-6 { background: var(--series-7); } .cl-7 { background: var(--series-8); }
+.cl-none { background: var(--muted); }
+
+.table-filters { padding: 14px 20px; }
+.table-filters .span-search { grid-column: span 2; }
+
+/* thẻ đặc điểm cụm */
+.cluster-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.cluster-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; }
+.cluster-card h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.cluster-card h3 .muted { margin-left: auto; font-size: 12.5px; font-weight: 500; }
+.cluster-card .desc { margin: 0; color: var(--text); font-size: 13px; }
+.cluster-stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 12.5px; }
+.cluster-stats dt { color: var(--muted); }
+.cluster-stats dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* danh sách đặc trưng */
+.feature-group + .feature-group { margin-top: 14px; }
+.feature-group .field-label { display: block; margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 600px) {
+    .table-filters .span-search { grid-column: auto; }
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu dữ liệu | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="tracuu.css">
+    <script src="vendor/chart.umd.min.js" defer></script>
+    <script src="tracuu.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div><h1>Tra cứu dữ liệu</h1><p>Tìm kiếm, lọc và quản lý sản phẩm mỹ phẩm từ các nhà bán lẻ</p></div>
+            <div class="page-actions">
+                <button type="button" class="btn btn-outline" id="exportBtn"><span data-icon="download"></span>Xuất CSV</button>
+                <button type="button" class="btn btn-primary" id="addBtn" hidden><span data-icon="plus"></span>Thêm sản phẩm</button>
+            </div>
+        </header>
+
+        <section class="card tc-toolbar" aria-label="Tìm kiếm và bộ lọc">
+            <div class="tc-search-row">
+                <div class="input-icon tc-search">
+                    <span data-icon="search"></span>
+                    <input class="input" id="searchInput" type="search" placeholder="Tìm tên sản phẩm, thương hiệu, danh mục… (gõ không dấu được)" autocomplete="off" aria-label="Tìm kiếm">
+                </div>
+                <button type="button" class="btn btn-ghost" id="resetBtn"><span data-icon="refresh"></span>Đặt lại</button>
+            </div>
+            <div class="filters">
+                <div class="field"><label for="retailerFilter">Nhà bán lẻ</label><select class="select" id="retailerFilter"><option value="">Tất cả nhà bán lẻ</option></select></div>
+                <div class="field"><label for="categoryFilter">Danh mục</label><select class="select" id="categoryFilter"><option value="">Tất cả danh mục</option></select></div>
+                <div class="field"><label for="brandFilter">Thương hiệu</label><select class="select" id="brandFilter"><option value="">Tất cả thương hiệu</option></select></div>
+                <div class="field"><label for="priceFilter">Khoảng giá</label><select class="select" id="priceFilter"><option value="">Tất cả mức giá</option></select></div>
+                <div class="field"><label for="discountFilter">Mức giảm</label><select class="select" id="discountFilter"><option value="">Tất cả mức giảm</option></select></div>
+                <div class="field"><label for="sortSelect">Sắp xếp</label>
+                    <select class="select" id="sortSelect">
+                        <option value="name">Tên A–Z</option>
+                        <option value="priceAsc">Giá tăng dần</option>
+                        <option value="priceDesc">Giá giảm dần</option>
+                        <option value="discount">Giảm giá nhiều nhất</option>
+                        <option value="rating">Rating cao nhất</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <div class="notice notice-warn mt" id="noticeBox" role="status" hidden></div>
+
+        <section class="card card-flush mt">
+            <div class="card-head">
+                <div><h2>Danh sách sản phẩm</h2><p id="summaryText">Đang tải…</p></div>
+            </div>
+            <div class="table-wrap tc-table-wrap">
+                <table class="table tc-table">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Nhà bán lẻ</th>
+                            <th class="num">Giá hiện tại</th>
+                            <th class="num">Giá niêm yết</th>
+                            <th class="num">Giảm giá</th>
+                            <th>Rating website</th>
+                            <th class="num" title="Số review đã thu thập được">Review thu thập</th>
+                            <th class="tc-actions-col">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div id="stateBox" hidden></div>
+            <div class="table-foot">
+                <span class="muted small" id="footText"></span>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+
+<!-- Chi tiết sản phẩm -->
+<div class="modal-overlay" id="detailModal" hidden>
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+        <div class="modal-head">
+            <div class="tc-detail-head">
+                <h2 id="detailTitle">Chi tiết sản phẩm</h2>
+                <p id="detailSub"></p>
+            </div>
+            <button type="button" class="icon-btn" data-close aria-label="Đóng"><span data-icon="x"></span></button>
+        </div>
+        <div class="modal-body">
+            <div class="stat-tiles tc-tiles" id="detailTiles"></div>
+            <div class="tc-detail-grid">
+                <section>
+                    <h3 class="tc-sec-title">Thông tin sản phẩm</h3>
+                    <dl class="tc-info" id="detailInfo"></dl>
+                </section>
+                <section>
+                    <div class="tc-sec-head">
+                        <h3 class="tc-sec-title">Lịch sử giá</h3>
+                        <span class="muted small" id="historyMeta"></span>
+                    </div>
+                    <div id="historyState" hidden></div>
+                    <div class="chart-box sm" id="historyBox"><canvas id="historyChart" aria-label="Biểu đồ lịch sử giá"></canvas></div>
+                    <p class="chart-note" id="historyNote"></p>
+                </section>
+            </div>
+            <section class="tc-reviews">
+                <div class="tc-sec-head">
+                    <div>
+                        <h3 class="tc-sec-title">Review đã thu thập</h3>
+                        <p class="hint">Review thu thập từ Hasaki / Guardian — khác với rating hiển thị trên website.</p>
+                    </div>
+                    <div class="row">
+                        <select class="select tc-mini" id="reviewStar" aria-label="Lọc theo số sao">
+                            <option value="">Tất cả sao</option>
+                            <option value="5">5 sao</option><option value="4">4 sao</option><option value="3">3 sao</option>
+                            <option value="2">2 sao</option><option value="1">1 sao</option>
+                        </select>
+                        <select class="select tc-mini" id="reviewSort" aria-label="Sắp xếp review">
+                            <option value="newest">Mới nhất</option>
+                            <option value="oldest">Cũ nhất</option>
+                            <option value="high">Sao cao nhất</option>
+                            <option value="low">Sao thấp nhất</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="tc-review-grid">
+                    <div id="reviewStats"></div>
+                    <div>
+                        <div class="tc-review-list" id="reviewList"></div>
+                        <button type="button" class="btn btn-outline btn-sm tc-more" id="reviewMore" hidden>Xem thêm</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<!-- Thêm / sửa sản phẩm -->
+<div class="modal-overlay" id="formModal" hidden>
+    <form class="modal" id="productForm" role="dialog" aria-modal="true" aria-labelledby="formTitle" novalidate>
+        <div class="modal-head">
+            <div><h2 id="formTitle">Thêm sản phẩm</h2><p id="formSub">Nhập thông tin sản phẩm cần quản lý</p></div>
+            <button type="button" class="icon-btn" data-close aria-label="Đóng"><span data-icon="x"></span></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="field full"><label for="fName">Tên sản phẩm *</label><input class="input" id="fName" maxlength="300" required></div>
+                <div class="field"><label for="fBrand">Thương hiệu *</label><input class="input" id="fBrand" maxlength="120" required></div>
+                <div class="field"><label for="fRetailer">Nhà bán lẻ *</label><select class="select" id="fRetailer" required></select></div>
+                <div class="field"><label for="fCategory">Danh mục</label><select class="select" id="fCategory"></select></div>
+                <div class="field"><label for="fUrl">Link sản phẩm</label><input class="input" id="fUrl" type="url" placeholder="https://…"></div>
+                <div class="field"><label for="fPrice">Giá hiện tại (đ) *</label><input class="input" id="fPrice" type="number" min="1" step="1" inputmode="numeric" required></div>
+                <div class="field"><label for="fListed">Giá niêm yết (đ)</label><input class="input" id="fListed" type="number" min="0" step="1" inputmode="numeric" placeholder="Để trống nếu không có"></div>
+                <div class="field"><label for="fDiscount">% giảm (tự tính)</label><input class="input" id="fDiscount" readonly tabindex="-1" placeholder="—"></div>
+                <p class="hint tc-form-hint"><span data-icon="info"></span>Đổi giá sẽ lưu thành một lần cập nhật mới trong lịch sử giá.</p>
+                <div class="notice notice-bad full" id="formError" role="alert" hidden></div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-outline" data-close>Hủy</button>
+            <button type="submit" class="btn btn-primary" id="formSubmit">Lưu sản phẩm</button>
+        </div>
+    </form>
+</div>
+
+<!-- Xác nhận xóa -->
+<div class="modal-overlay" id="deleteModal" hidden>
+    <div class="modal narrow" role="alertdialog" aria-modal="true" aria-labelledby="deleteTitle">
+        <div class="modal-head">
+            <div><h2 id="deleteTitle">Xóa sản phẩm?</h2><p>Sản phẩm và toàn bộ lịch sử giá sẽ bị xóa.</p></div>
+            <button type="button" class="icon-btn" data-close aria-label="Đóng"><span data-icon="x"></span></button>
+        </div>
+        <div class="modal-body">
+            <p class="tc-delete-name" id="deleteName"></p>
+            <div class="notice notice-bad" id="deleteError" role="alert" hidden></div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-outline" data-close>Hủy</button>
+            <button type="button" class="btn btn-danger" id="deleteConfirm">Xóa sản phẩm</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

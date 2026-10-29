@@ -1,0 +1,80 @@
+/* baocao.css - chỉ phần riêng của trang Báo cáo thống kê (phần chung ở style.css) */
+
+/* tiêu đề từng phần có đánh số */
+.section { margin-top: 30px; }
+.section:first-of-type { margin-top: 0; }
+.section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.section-no {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 700;
+}
+.section-head h2 { margin: 0; font-size: 18px; font-weight: 750; }
+.section-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.chart-box.is-loading { background: #f1f2f6; border-radius: 10px; }
+.card-flush > .table-wrap { margin-top: 4px; }
+
+/* ô giá kèm tên sản phẩm (bảng min – max) */
+.mm b { display: block; font-variant-numeric: tabular-nums; }
+.mm small { display: block; max-width: 230px; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table tr.total-row td { background: var(--surface-2); font-weight: 600; }
+.table .rank { color: var(--muted); width: 36px; }
+.share { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+.share .bar-track { flex: 1; height: 8px; }
+
+/* màu nhà bán lẻ = BP.COLORS.retailer */
+.rt { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-weight: 500; }
+.rt::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--rt, var(--muted)); }
+.rt-cocolux { --rt: #2a78d6; }
+.rt-guardian { --rt: #eb6834; }
+.rt-hasaki { --rt: #1baf7a; }
+.rt-the_gioi_skin_food { --rt: #eda100; }
+.rt-watsons { --rt: #e87ba4; }
+
+/* nhật ký ETL */
+.step-no { color: var(--muted); font-variant-numeric: tabular-nums; }
+.table td.note { color: var(--text-2); font-size: 12.5px; min-width: 160px; }
+.table code { font-size: 12px; color: var(--text-2); background: var(--surface-2); padding: 2px 6px; border-radius: 6px; }
+.stat-tile code { font-size: 11px; color: var(--muted); }
+.table-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.table-tiles .stat-tile { padding: 10px 14px; }
+.step-name { min-width: 230px; }
+
+/* tỷ lệ thu thập thành công */
+.collect { display: flex; flex-direction: column; gap: 16px; }
+.collect-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 20px; }
+.collect-row { display: grid; grid-template-columns: 150px 1fr 110px; gap: 12px; align-items: center; font-size: 13px; }
+.collect-row .bar-value { text-align: right; }
+
+@media (max-width: 600px) {
+    .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .kpi-row .card { padding: 14px; }
+    .kpi-row .kpi-icon { display: none; }
+    .kpi-row .kpi-value { font-size: 20px; }
+    .section-head h2 { font-size: 16px; }
+    .collect-row { grid-template-columns: 1fr auto; }
+    .collect-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* in / lưu PDF: bảng và biểu đồ không bị cắt */
+@media print {
+    @page { size: A4; margin: 12mm; }
+    body { font-size: 11.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section { margin-top: 18px; }
+    .section-head { break-after: avoid; }
+    .grid.cols-2, .grid.cols-3 { gap: 10px; }
+    .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card { padding: 12px; }
+    .table-wrap { overflow: visible; }
+    .table th { position: static; }
+    .table { font-size: 10.5px; }
+    .table td, .table th { padding: 5px 6px; }
+    .table th { font-size: 9.5px; letter-spacing: 0; }
+    .table tr { break-inside: avoid; }
+    .card-flush { overflow: visible; break-inside: auto; }
+    .card-flush > .card-head { padding: 12px 12px 0; }
+    .chart-box { height: 240px; }
+    .chart-box canvas { width: 100% !important; height: 100% !important; }
+    .mm small { max-width: 120px; font-size: 10px; }
+    .step-name, .table td.note, .share { min-width: 0; }
+    .stat-tiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}

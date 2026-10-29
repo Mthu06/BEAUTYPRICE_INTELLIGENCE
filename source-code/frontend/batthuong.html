@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phát hiện bất thường | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="batthuong.css">
+    <script src="vendor/chart.umd.min.js" defer></script>
+    <script src="batthuong.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Phát hiện bất thường (Isolation Forest)</h1>
+                <p>Tìm sản phẩm có giá, mức giảm hoặc đánh giá khác thường so với phần còn lại để rà soát dữ liệu và giá bán.</p>
+            </div>
+            <div class="page-actions"><span class="badge" id="trainedAt">Huấn luyện: —</span></div>
+        </header>
+
+        <div id="pageError"></div>
+
+        <section class="grid cols-4">
+            <div class="card kpi"><div class="kpi-icon red" data-icon="anomaly"></div><div>
+                <div class="kpi-label">Sản phẩm bất thường</div><div class="kpi-value" id="kpiFlagged">—</div><div class="kpi-sub" id="kpiFlaggedSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon" data-icon="percent"></div><div>
+                <div class="kpi-label">Contamination giả định</div><div class="kpi-value" id="kpiContamination">—</div><div class="kpi-sub">Tỷ lệ bất thường đặt trước khi huấn luyện</div></div></div>
+            <div class="card kpi"><div class="kpi-icon orange" data-icon="info"></div><div>
+                <div class="kpi-label">Lý do phổ biến nhất</div><div class="kpi-value kpi-text" id="kpiReason">—</div><div class="kpi-sub" id="kpiReasonSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon blue" data-icon="store"></div><div>
+                <div class="kpi-label">Tỷ lệ cao nhất theo nhà bán lẻ</div><div class="kpi-value kpi-text" id="kpiRetailer">—</div><div class="kpi-sub" id="kpiRetailerSub">—</div></div></div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Giá và mức giảm giá</h2><p>Mỗi điểm là một sản phẩm; trục giá theo thang log.</p></div></div>
+                <div class="chart-box lg"><canvas id="scatterChart" aria-label="Biểu đồ phân tán giá và mức giảm giá"></canvas></div>
+                <p class="chart-note" id="scatterNote"></p>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Tỷ lệ bất thường theo nhà bán lẻ</h2><p>% sản phẩm bị đánh dấu trên tổng số sản phẩm của nhà bán lẻ đó.</p></div></div>
+                <div class="chart-box lg"><canvas id="retailerChart" aria-label="Tỷ lệ bất thường theo nhà bán lẻ"></canvas></div>
+            </div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Lý do bất thường</h2><p>Mỗi sản phẩm có thể có 1–2 lý do (đặc trưng lệch nhiều nhất).</p></div></div>
+                <div class="chart-box lg"><canvas id="reasonChart" aria-label="Số sản phẩm theo lý do bất thường"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-head"><div><h2>Cách mô hình hoạt động</h2><p id="modelName">Isolation Forest</p></div></div>
+                <p class="explain">Isolation Forest dựng nhiều cây chia ngẫu nhiên dữ liệu. Sản phẩm khác thường bị <b>cô lập sau ít lần chia</b> hơn sản phẩm bình thường,
+                    nên có <b>điểm bất thường thấp</b> (âm). Mô hình đánh dấu nhóm có điểm thấp nhất theo tỷ lệ contamination đặt trước.</p>
+                <span class="field-label">Đặc trưng đầu vào</span>
+                <div class="chips" id="featureList"></div>
+                <span class="field-label mt-sm">Độ nhạy theo contamination</span>
+                <div class="table-wrap">
+                    <table class="table compact">
+                        <thead><tr><th>Tỷ lệ giả định</th><th class="num">Số SP</th><th class="num">% tổng</th></tr></thead>
+                        <tbody id="sensitivityBody"></tbody>
+                    </table>
+                </div>
+                <div class="notice notice-warn mt-sm" data-icon="alert"><span>“Bất thường” nghĩa là <b>cần rà soát</b> (lỗi thu thập, giá niêm yết ảo, hàng cận date…), không phải chắc chắn sai.</span></div>
+            </div>
+        </section>
+
+        <section class="card card-flush mt">
+            <div class="card-head">
+                <div><h2>Danh sách sản phẩm</h2><p id="tableInfo">—</p></div>
+                <button type="button" class="btn btn-outline btn-sm" id="exportBtn" data-icon="download">Xuất CSV</button>
+            </div>
+            <div class="filters table-filters">
+                <div class="field"><label for="modeFilter">Hiển thị</label>
+                    <select class="select" id="modeFilter"><option value="anomaly">Chỉ bất thường</option><option value="all">Tất cả sản phẩm</option></select></div>
+                <div class="field"><label for="retailerFilter">Nhà bán lẻ</label><select class="select" id="retailerFilter"><option value="">Tất cả</option></select></div>
+                <div class="field"><label for="categoryFilter">Danh mục</label><select class="select" id="categoryFilter"><option value="">Tất cả</option></select></div>
+                <div class="field"><label for="reasonFilter">Lý do</label><select class="select" id="reasonFilter"><option value="">Tất cả</option></select></div>
+                <div class="field"><label for="searchInput">Tìm sản phẩm</label>
+                    <div class="input-icon" data-icon="search"><input class="input" id="searchInput" type="search" placeholder="Tên hoặc thương hiệu..."></div></div>
+            </div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Sản phẩm</th><th>Nhà bán lẻ</th><th>Danh mục</th><th class="num">Giá</th><th class="num">Niêm yết</th>
+                        <th class="num">Giảm</th><th class="num">Rating</th><th title="Điểm bất thường: càng thấp càng bất thường">Điểm</th><th>Lý do</th></tr></thead>
+                    <tbody id="productBody"><tr><td colspan="9"></td></tr></tbody>
+                </table>
+            </div>
+            <div class="table-foot"><span class="muted small" id="pageInfo"></span><div class="pagination" id="pagination"></div></div>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+</body>
+</html>

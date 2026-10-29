@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# File tạm khi ghi dữ liệu
+*.tmp
+
+# IDE / hệ điều hành
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# CSDL tạm khi dựng / bản sao lưu
+*.building
+*.bak
+source-code/backend/.venv/
+
+# Bản sao lưu CSDL tạo từ trang Sao lưu & phục hồi
+dataset/backups/
+
+node_modules/

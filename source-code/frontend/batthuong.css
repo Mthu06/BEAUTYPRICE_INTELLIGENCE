@@ -1,0 +1,22 @@
+/* batthuong.css - phần riêng của trang Phát hiện bất thường (dùng chung style.css). */
+
+/* chấm màu nhà bán lẻ = BP.COLORS.retailer (class thay cho inline style) */
+.rt-cocolux { background: var(--series-1); } .rt-guardian { background: var(--series-2); }
+.rt-hasaki { background: var(--series-3); } .rt-the_gioi_skin_food { background: var(--series-4); }
+.rt-watsons { background: var(--series-5); } .rt-other { background: var(--muted); }
+
+.kpi-text { font-size: 17px; letter-spacing: 0; line-height: 1.35; margin-top: 4px; }
+.mt-sm { margin-top: 14px; }
+.field-label { display: block; margin-bottom: 8px; }
+.explain { margin: 0 0 14px; color: var(--text-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.table.compact td, .table.compact th { padding: 8px 12px; }
+.table-filters { padding: 14px 20px; }
+
+.table .name-cell { min-width: 220px; }
+.table .reason { min-width: 150px; max-width: 200px; color: var(--text-2); font-size: 12.5px; }
+.table .score { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.table .score small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.table td small.ratio { display: block; color: var(--muted); font-size: 11.5px; }
+.table td small.ratio.high { color: var(--bad); }
+.shop { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }

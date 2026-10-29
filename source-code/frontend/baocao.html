@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo thống kê | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="baocao.css">
+    <script src="vendor/chart.umd.min.js" defer></script>
+    <script src="baocao.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Báo cáo thống kê</h1>
+                <p>Thống kê mô tả giá, khuyến mãi, đánh giá và chất lượng dữ liệu mỹ phẩm từ 5 nhà bán lẻ · <span id="reportTime">—</span></p>
+            </div>
+            <div class="page-actions">
+                <button type="button" class="btn btn-outline" id="printBtn"><span data-icon="printer"></span>In / Lưu PDF</button>
+                <button type="button" class="btn btn-primary" id="exportBtn" disabled><span data-icon="download"></span>Xuất CSV</button>
+            </div>
+        </header>
+
+        <!-- 1. Tổng quan -->
+        <section class="section" aria-labelledby="secOverview">
+            <div class="section-head"><span class="section-no">1</span><div><h2 id="secOverview">Tổng quan</h2><p>Giá hiện tại (snapshot mới nhất) của mỗi sản phẩm.</p></div></div>
+            <div class="grid cols-3 kpi-row">
+                <div class="card kpi"><div class="kpi-icon" data-icon="box"></div><div><div class="kpi-label">Tổng sản phẩm</div><div class="kpi-value" id="kpiProducts">—</div><div class="kpi-sub" id="kpiProductsSub">—</div></div></div>
+                <div class="card kpi"><div class="kpi-icon blue" data-icon="tag"></div><div><div class="kpi-label">Thương hiệu</div><div class="kpi-value" id="kpiBrands">—</div><div class="kpi-sub" id="kpiBrandsSub">—</div></div></div>
+                <div class="card kpi"><div class="kpi-icon green" data-icon="target"></div><div><div class="kpi-label">Giá trung vị</div><div class="kpi-value" id="kpiMedian">—</div><div class="kpi-sub" id="kpiMedianSub">—</div></div></div>
+                <div class="card kpi"><div class="kpi-icon green" data-icon="predict"></div><div><div class="kpi-label">Giá trung bình</div><div class="kpi-value" id="kpiMean">—</div><div class="kpi-sub" id="kpiMeanSub">—</div></div></div>
+                <div class="card kpi"><div class="kpi-icon orange" data-icon="percent"></div><div><div class="kpi-label">Đang giảm giá</div><div class="kpi-value" id="kpiDiscount">—</div><div class="kpi-sub" id="kpiDiscountSub">—</div></div></div>
+                <div class="card kpi"><div class="kpi-icon red" data-icon="star"></div><div><div class="kpi-label">Tổng review</div><div class="kpi-value" id="kpiReviews">—</div><div class="kpi-sub" id="kpiReviewsSub">—</div></div></div>
+            </div>
+        </section>
+
+        <!-- 2. Min - max -->
+        <section class="section" aria-labelledby="secMinMax">
+            <div class="section-head"><span class="section-no">2</span><div><h2 id="secMinMax">Danh sách min – max</h2><p>Sản phẩm rẻ nhất / đắt nhất và các chỉ số tập trung theo nhóm.</p></div></div>
+            <div class="stack">
+                <div class="card card-flush">
+                    <div class="card-head"><div><h3>Theo danh mục</h3><p>Danh mục chính của sản phẩm; “Chưa phân loại” là sản phẩm không có danh mục chính hợp lệ.</p></div></div>
+                    <div class="table-wrap" id="categoryTable"></div>
+                </div>
+                <div class="card card-flush">
+                    <div class="card-head"><div><h3>Theo nhà bán lẻ</h3><p>Cùng chỉ số, tách theo nơi thu thập dữ liệu.</p></div></div>
+                    <div class="table-wrap" id="retailerTable"></div>
+                </div>
+                <div class="card card-flush">
+                    <div class="card-head"><div><h3>Min – max các chỉ số</h3><p>Chỉ tính giá trị hợp lệ; ô thiếu (không có giá niêm yết, chưa có rating...) không bị coi là 0.</p></div></div>
+                    <div class="table-wrap" id="metricTable"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Phân bố -->
+        <section class="section" aria-labelledby="secDist">
+            <div class="section-head"><span class="section-no">3</span><div><h2 id="secDist">Phân bố giá, khuyến mãi và thương hiệu</h2><p>Số sản phẩm theo khoảng giá, mức giảm giá và 10 thương hiệu nhiều sản phẩm nhất.</p></div></div>
+            <div class="grid cols-2">
+                <div class="card">
+                    <div class="card-head"><div><h3>Phân bố khoảng giá</h3><p>Số sản phẩm theo khoảng giá hiện tại.</p></div></div>
+                    <div class="chart-box is-loading"><canvas id="priceChart" aria-label="Phân bố khoảng giá"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div><h3>Phân bố mức giảm giá</h3><p>Tỷ trọng sản phẩm theo % giảm so với giá niêm yết.</p></div></div>
+                    <div class="chart-box is-loading"><canvas id="discountChart" aria-label="Phân bố mức giảm giá"></canvas></div>
+                </div>
+            </div>
+            <div class="card card-flush mt">
+                <div class="card-head"><div><h3>Top 10 thương hiệu</h3><p>Theo số sản phẩm; giảm TB tính trên sản phẩm có giá niêm yết.</p></div></div>
+                <div class="table-wrap" id="brandTable"></div>
+            </div>
+        </section>
+
+        <!-- 4. Đánh giá -->
+        <section class="section" aria-labelledby="secReview">
+            <div class="section-head"><span class="section-no">4</span><div><h2 id="secReview">Thống kê đánh giá</h2><p>Review khách hàng thu thập từ Hasaki và Guardian.</p></div></div>
+            <div class="card">
+                <div class="stat-tiles" id="reviewTiles"></div>
+                <div class="notice notice-info mt" id="reviewNote" hidden></div>
+            </div>
+            <div class="card mt">
+                <div class="card-head"><div><h3>Phân bố số sao review theo nguồn</h3><p>% review của từng nguồn; nửa sao gộp vào mức sao nguyên bên dưới (4,5 → 4 sao).</p></div></div>
+                <div class="chart-box sm is-loading"><canvas id="starChart" aria-label="Phân bố số sao review theo nguồn"></canvas></div>
+                <div class="table-wrap mt" id="starTable"></div>
+            </div>
+        </section>
+
+        <!-- 5. Chất lượng dữ liệu -->
+        <section class="section" aria-labelledby="secQuality">
+            <div class="section-head"><span class="section-no">5</span><div><h2 id="secQuality">Chất lượng dữ liệu &amp; quy trình làm sạch</h2><p id="etlRun">Nhật ký ETL của lần dựng CSDL gần nhất.</p></div></div>
+            <div class="card card-flush">
+                <div class="card-head"><div><h3>Các bước làm sạch dữ liệu</h3><p>Mỗi bước ghi số dòng vào / ra và số dòng bị tác động (bảng etl_log).</p></div></div>
+                <div class="table-wrap" id="stepTable"></div>
+            </div>
+            <div class="grid cols-2 mt">
+                <div class="card">
+                    <div class="card-head"><div><h3>Số dòng từng bảng CSDL</h3><p>Sau khi làm sạch và nạp vào SQLite.</p></div></div>
+                    <div class="stat-tiles table-tiles" id="tableTiles"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div><h3>Nhật ký thu thập theo nhà bán lẻ</h3><p>Số lần chạy crawler và số lần thành công.</p></div></div>
+                    <div id="collectionList"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section card" aria-labelledby="secInsight">
+            <div class="card-head"><div><h3 id="secInsight">Nhận định báo cáo</h3><p>Rút ra tự động từ số liệu ở trên.</p></div></div>
+            <ul class="insights" id="insights"><li><span class="ins-no">…</span><span>Đang phân tích...</span></li></ul>
+        </section>
+
+        <footer class="page-foot">Báo cáo lập lúc <span id="footTime">—</span> · BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+</body>
+</html>

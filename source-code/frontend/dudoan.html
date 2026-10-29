@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dự đoán giá | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dudoan.css">
+    <script src="vendor/chart.umd.min.js" defer></script>
+    <script src="dudoan.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Dự đoán giá (học có giám sát)</h1>
+                <p>Hồi quy giá bán và phân loại phân khúc giá, đánh giá trên tập kiểm tra (test) mà mô hình chưa từng thấy.</p>
+            </div>
+            <div class="page-actions">
+                <button type="button" class="btn btn-outline" id="exportBtn" disabled><span data-icon="download"></span>Xuất CSV</button>
+            </div>
+        </header>
+
+        <div class="notice notice-bad" id="pageError" hidden></div>
+
+        <!-- 1. Hồi quy -->
+        <section class="section" aria-labelledby="secReg">
+            <div class="section-head">
+                <span class="section-no">1</span>
+                <div><h2 id="secReg">Hồi quy giá bán</h2><p id="regModel">Đang tải mô hình...</p></div>
+            </div>
+            <div class="grid cols-4 kpi-row">
+                <div class="card kpi"><div class="kpi-icon blue" data-icon="target"></div><div><div class="kpi-label">MAE (sai số tuyệt đối TB)</div><div class="kpi-value" id="kpiMae">—</div><div class="kpi-sub">Trung bình lệch so với giá thật</div></div></div>
+                <div class="card kpi"><div class="kpi-icon orange" data-icon="alert"></div><div><div class="kpi-label">RMSE</div><div class="kpi-value" id="kpiRmse">—</div><div class="kpi-sub">Phạt nặng các lỗi lớn</div></div></div>
+                <div class="card kpi"><div class="kpi-icon green" data-icon="predict"></div><div><div class="kpi-label">R² (hệ số xác định)</div><div class="kpi-value" id="kpiR2">—</div><div class="kpi-sub" id="kpiR2Sub">Tỷ lệ biến thiên giá giải thích được</div></div></div>
+                <div class="card kpi"><div class="kpi-icon red" data-icon="percent"></div><div><div class="kpi-label">MAPE (sai số % TB)</div><div class="kpi-value" id="kpiMape">—</div><div class="kpi-sub" id="kpiMapeSub">Trung vị sai số %: —</div></div></div>
+            </div>
+
+            <div class="grid cols-2 mt">
+                <div class="card">
+                    <div class="card-head"><div><h3>Giá thực tế vs giá dự đoán</h3><p>Mỗi điểm là một sản phẩm tập test; càng sát đường nét đứt càng chính xác (trục log).</p></div></div>
+                    <div class="chart-box lg is-loading"><canvas id="scatterChart" aria-label="Biểu đồ phân tán giá thực tế và giá dự đoán"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div><h3>So sánh mô hình (MAE trên tập validation)</h3><p>Thấp hơn là tốt hơn. Mô hình tốt nhất được huấn luyện lại và chấm điểm trên tập test.</p></div></div>
+                    <div class="chart-box lg is-loading"><canvas id="regCompareChart" aria-label="So sánh MAE các mô hình hồi quy"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div><h3>Mức độ quan trọng của đặc trưng</h3><p>Gộp các cột one-hot về đặc trưng gốc (tổng = 100%).</p></div>
+                        <select class="select select-sm" id="featureTask" aria-label="Chọn mô hình">
+                            <option value="regression">Mô hình hồi quy</option>
+                            <option value="classification">Mô hình phân loại</option>
+                        </select>
+                    </div>
+                    <div class="chart-box lg is-loading"><canvas id="featureChart" aria-label="Mức độ quan trọng của đặc trưng"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div><h3>Sai số % (MAPE) theo nhóm giá thực tế</h3><p>Trung bình sai số phần trăm của từng phân khúc giá trên tập test.</p></div></div>
+                    <div class="chart-box is-loading"><canvas id="groupChart" aria-label="MAPE theo nhóm giá"></canvas></div>
+                    <p class="chart-note" id="groupNote"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Phân loại -->
+        <section class="section" aria-labelledby="secClf">
+            <div class="section-head">
+                <span class="section-no">2</span>
+                <div><h2 id="secClf">Phân loại phân khúc giá</h2><p id="clfModel">Đang tải mô hình...</p></div>
+            </div>
+            <div class="grid cols-4 kpi-row">
+                <div class="card kpi"><div class="kpi-icon green" data-icon="check"></div><div><div class="kpi-label">Accuracy</div><div class="kpi-value" id="kpiAcc">—</div><div class="kpi-sub">Tỷ lệ dự đoán đúng nhóm</div></div></div>
+                <div class="card kpi"><div class="kpi-icon blue" data-icon="target"></div><div><div class="kpi-label">F1-macro</div><div class="kpi-value" id="kpiF1">—</div><div class="kpi-sub">Cân bằng precision và recall</div></div></div>
+                <div class="card kpi"><div class="kpi-icon orange" data-icon="layers"></div><div><div class="kpi-label">Precision (macro)</div><div class="kpi-value" id="kpiPrec">—</div><div class="kpi-sub">Đoán nhóm X thì đúng bao nhiêu</div></div></div>
+                <div class="card kpi"><div class="kpi-icon red" data-icon="search"></div><div><div class="kpi-label">Recall (macro)</div><div class="kpi-value" id="kpiRec">—</div><div class="kpi-sub">Nhận ra được bao nhiêu SP nhóm X</div></div></div>
+            </div>
+
+            <div class="grid cols-2 mt">
+                <div class="card">
+                    <div class="card-head"><div><h3>Ma trận nhầm lẫn (tập test)</h3><p>Hàng = nhóm thực tế, cột = nhóm mô hình dự đoán. Màu đậm theo tỷ lệ trong hàng.</p></div></div>
+                    <div class="table-wrap" id="confusion"><div class="skeleton cm-skeleton"></div></div>
+                    <p class="chart-note" id="thresholdNote"></p>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div><h3>So sánh mô hình phân loại (F1-macro validation)</h3><p>Cao hơn là tốt hơn; mô hình “Dummy” là mốc so sánh tối thiểu.</p></div></div>
+                    <div class="chart-box lg is-loading"><canvas id="clfCompareChart" aria-label="So sánh F1 các mô hình phân loại"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Bảng dự đoán -->
+        <section class="section" aria-labelledby="secTable">
+            <div class="section-head">
+                <span class="section-no">3</span>
+                <div><h2 id="secTable">Kết quả dự đoán từng sản phẩm</h2><p>Tập test: giá dự đoán của mô hình hồi quy và nhóm giá của mô hình phân loại.</p></div>
+            </div>
+            <div class="card card-flush" id="tableCard">
+                <div class="filters table-filters">
+                    <div class="field">
+                        <label for="searchInput">Tìm kiếm</label>
+                        <div class="input-icon"><span data-icon="search"></span><input class="input" id="searchInput" type="search" placeholder="Tên sản phẩm, thương hiệu..."></div>
+                    </div>
+                    <div class="field">
+                        <label for="groupFilter">Nhóm giá thực tế</label>
+                        <select class="select" id="groupFilter">
+                            <option value="">Tất cả nhóm</option>
+                            <option>Thấp</option><option>Trung bình</option><option>Cao</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="resultFilter">Kết quả phân loại</label>
+                        <select class="select" id="resultFilter">
+                            <option value="">Tất cả</option>
+                            <option value="right">Phân loại đúng</option>
+                            <option value="wrong">Phân loại sai</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="sortSelect">Sắp xếp</label>
+                        <select class="select" id="sortSelect">
+                            <option value="apeDesc">Sai số % giảm dần</option>
+                            <option value="apeAsc">Sai số % tăng dần</option>
+                            <option value="aeDesc">Sai số VND giảm dần</option>
+                            <option value="priceDesc">Giá thực tế giảm dần</option>
+                            <option value="name">Tên A–Z</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th><th>Danh mục</th><th class="num">Giá thực tế</th><th class="num">Giá dự đoán</th>
+                                <th class="num">Sai số</th><th>Nhóm thực tế</th><th>Phân loại dự đoán</th>
+                            </tr>
+                        </thead>
+                        <tbody id="predBody"><tr><td colspan="7"></td></tr></tbody>
+                    </table>
+                </div>
+                <div class="table-foot">
+                    <span class="muted" id="tableInfo">Đang tải...</span>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section card" aria-labelledby="secInsight">
+            <div class="card-head"><div><h3 id="secInsight">Nhận định</h3><p>Rút ra tự động từ kết quả mô hình trên tập test.</p></div></div>
+            <ul class="insights" id="insights"><li><span class="ins-no">…</span><span>Đang phân tích...</span></li></ul>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+</body>
+</html>

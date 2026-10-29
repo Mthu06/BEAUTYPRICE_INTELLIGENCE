@@ -1,0 +1,6 @@
+# Giữ đúng kiểu xuống dòng cho script chạy trên từng hệ điều hành
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.mp4  binary
+*.png  binary
+*.pdf  binary

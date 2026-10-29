@@ -1,0 +1,34 @@
+# Kết quả kiểm thử tự động - 2026-10-29 12:25
+
+## test_api.py
+test_auth (__main__.ApiTest.test_auth) ... ok
+test_crud_keeps_price_history (__main__.ApiTest.test_crud_keeps_price_history) ... ok
+test_read_endpoints (__main__.ApiTest.test_read_endpoints) ... ok
+test_validation (__main__.ApiTest.test_validation) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 2.153s
+
+OK
+
+## test_backup.py
+test_backup_change_restore_verify (__main__.BackupRestoreTest.test_backup_change_restore_verify) ... ok
+test_only_admin (__main__.BackupRestoreTest.test_only_admin) ... ok
+test_reject_bad_names (__main__.BackupRestoreTest.test_reject_bad_names) ... ok
+test_tampered_backup_is_refused (__main__.BackupRestoreTest.test_tampered_backup_is_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.796s
+
+OK
+
+## test_crawler.py
+test_clean_records (__main__.CrawlerTest.test_clean_records) ... ok
+test_guardian_parser (__main__.CrawlerTest.test_guardian_parser) ... ok
+test_product_id_matches_original_dataset (__main__.CrawlerTest.test_product_id_matches_original_dataset) ... ok
+test_robots_rules (__main__.CrawlerTest.test_robots_rules) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
