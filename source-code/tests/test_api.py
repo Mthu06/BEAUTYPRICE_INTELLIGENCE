@@ -8,12 +8,14 @@ import shutil
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TMP = Path(tempfile.mkdtemp(prefix="beautyprice_test_"))
 shutil.copy(ROOT / "dataset" / "beautyprice.db", TMP / "test.db")
 os.environ["BEAUTY_DB"] = str(TMP / "test.db")
+os.environ["BEAUTY_SCHEDULER"] = "0"
 sys.path.insert(0, str(ROOT / "source-code" / "backend"))
 
 import app as backend  # noqa: E402
@@ -76,6 +78,32 @@ class ApiTest(unittest.TestCase):
 
         self.assertEqual(self.client.delete(f"/api/products/{pid}", headers=self.admin).status_code, 200)
         self.assertEqual(self.client.delete(f"/api/products/{pid}", headers=self.admin).status_code, 404)
+
+
+    def test_crawl_options(self):
+        # Chỉ kiểm tra phân quyền, dữ liệu vào và lưu lịch: không gọi mạng thật
+        self.assertEqual(self.client.get("/api/crawl", headers=self.user).status_code, 403)
+        info = self.client.get("/api/crawl", headers=self.admin).get_json()
+        self.assertEqual(info["limits"]["delay"], [1, 30])
+        bad = [{"delay": 0.2}, {"delay": "abc"}, {"max_pages": 201}, {"review_products": -1}, {"sources": ["khong-co"]},
+               {"categories": [], "reviews": False}]
+        for body in bad:
+            with self.subTest(body=body):
+                self.assertEqual(self.client.post("/api/crawl/start", json=body, headers=self.admin).status_code, 400)
+        category = info["categories"][0]["key"]
+        options = {"sources": ["hasaki"], "categories": [category], "max_pages": 7, "delay": 2.5,
+                   "reviews": True, "review_products": 120, "review_pages": 3}
+        first = (datetime.now() + timedelta(hours=5)).replace(second=0, microsecond=0)
+        saved = self.client.put("/api/crawl/schedule", headers=self.admin, json={
+            "enabled": True, "interval_hours": 36, "first_run_at": first.isoformat(timespec="minutes"), "options": options})
+        self.assertEqual(saved.status_code, 200, saved.get_json())
+        schedule = saved.get_json()["schedule"]
+        self.assertEqual(schedule["next_run_at"], first.isoformat(timespec="seconds"))
+        self.assertEqual({k: schedule["options"][k] for k in options}, options)
+        for body in [{"interval_hours": 0.5}, {"interval_hours": 721}, {"first_run_at": "2000-01-01T00:00"}, {"first_run_at": "abc"}]:
+            with self.subTest(body=body):
+                response = self.client.put("/api/crawl/schedule", headers=self.admin, json={"enabled": True, "options": options, **body})
+                self.assertEqual(response.status_code, 400)
 
 
 if __name__ == "__main__":

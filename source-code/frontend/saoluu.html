@@ -6,6 +6,7 @@
     <title>Sao lưu & phục hồi | BeautyPrice Intelligence</title>
     <script src="common.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="saoluu.css">
     <script src="saoluu.js" defer></script>
 </head>
 <body>
@@ -19,7 +20,9 @@
             </div>
             <div class="page-actions">
                 <button type="button" class="btn btn-outline" id="reloadBtn"></button>
+                <button type="button" class="btn btn-outline" id="uploadBtn"></button>
                 <button type="button" class="btn btn-primary" id="backupBtn"></button>
+                <input type="file" id="uploadInput" accept=".db,.sqlite,.sqlite3" hidden>
             </div>
         </header>
 
@@ -34,6 +37,13 @@
                 <div class="kpi-label">Sản phẩm / snapshot giá</div><div class="kpi-value" id="kpiRows">—</div><div class="kpi-sub" id="kpiRowsSub">—</div></div></div>
             <div class="card kpi"><div class="kpi-icon orange" id="icCount"></div><div>
                 <div class="kpi-label">Số bản sao lưu</div><div class="kpi-value" id="kpiBackups">—</div><div class="kpi-sub" id="kpiLast">—</div></div></div>
+        </section>
+
+        <section class="card mt sl-drop" id="dropZone" tabindex="0" role="button" aria-label="Chọn hoặc kéo thả tệp sao lưu để tải lên">
+            <div class="sl-drop-icon" id="dropIcon"></div>
+            <div><b>Tải lên bản sao lưu từ máy tính</b>
+                <p class="hint">Kéo thả tệp <code>.db</code> vào đây hoặc bấm để chọn (VD bản đã “Tải về” trước đó, hoặc CSDL từ máy khác).
+                    Tệp được kiểm tra định dạng, cấu trúc bảng, toàn vẹn, rồi thêm vào danh sách bên dưới; CSDL hiện tại chưa bị thay đổi cho tới khi bấm “Phục hồi”.</p></div>
         </section>
 
         <section class="card card-flush mt">
@@ -61,8 +71,10 @@
             <div class="card-head"><div><h2>Quy trình</h2><p>Phục hồi luôn được kiểm tra, không chỉ tạo tệp sao lưu.</p></div></div>
             <ul class="insights">
                 <li><span class="ins-no">1</span><span><b>Sao lưu</b> bằng SQLite Online Backup API (an toàn khi website đang chạy), rồi kiểm tra ngay bản sao: <b>integrity_check</b>, số dòng từng bảng, mã băm <b>SHA-256</b>.</span></li>
-                <li><span class="ins-no">2</span><span><b>Trước khi phục hồi</b>: đối chiếu SHA-256 (từ chối nếu tệp bị sửa sau khi tạo), kiểm tra toàn vẹn bản sao lưu, và <b>tự sao lưu dữ liệu hiện tại</b> (đuôi <code>_truoc-phuc-hoi</code>) để có thể quay lại.</span></li>
-                <li><span class="ins-no">3</span><span><b>Sau khi phục hồi</b>: kiểm tra toàn vẹn, khóa ngoại và so sánh số dòng của 13 bảng với bản sao lưu. Kết quả hiện ở bảng phía trên.</span></li>
+                <li><span class="ins-no">2</span><span><b>Tải lên</b> tệp <code>.db</code> từ máy khác: chỉ nhận khi đúng định dạng SQLite, đủ 13 bảng và các cột của hệ thống,
+                    không chứa view/trigger lạ, có tài khoản quản trị, và qua <b>integrity_check</b>. Tệp hợp lệ được lưu như một bản sao lưu (đuôi <code>_tai-len</code>).</span></li>
+                <li><span class="ins-no">3</span><span><b>Trước khi phục hồi</b>: đối chiếu SHA-256 (từ chối nếu tệp bị sửa sau khi tạo), kiểm tra toàn vẹn bản sao lưu, và <b>tự sao lưu dữ liệu hiện tại</b> (đuôi <code>_truoc-phuc-hoi</code>) để có thể quay lại.</span></li>
+                <li><span class="ins-no">4</span><span><b>Sau khi phục hồi</b>: bổ sung cột/bảng mới nếu là bản sao lưu cũ, kiểm tra toàn vẹn, khóa ngoại và so sánh số dòng của 13 bảng với bản sao lưu. Kết quả hiện ở bảng phía trên.</span></li>
             </ul>
         </section>
 

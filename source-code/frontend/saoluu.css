@@ -1,0 +1,12 @@
+/* Trang Sao lưu & phục hồi */
+.sl-drop {
+    display: flex; align-items: center; gap: 16px; border: 2px dashed var(--border-strong); background: var(--surface);
+    cursor: pointer; transition: border-color .15s, background .15s;
+}
+.sl-drop:hover, .sl-drop:focus-visible, .sl-drop.is-over { border-color: var(--brand); background: var(--brand-50); outline: none; }
+.sl-drop.is-busy { opacity: .6; pointer-events: none; }
+.sl-drop .hint { margin: 4px 0 0; }
+.sl-drop-icon {
+    flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+    background: var(--brand-50); color: var(--brand);
+}

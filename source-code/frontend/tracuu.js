@@ -328,6 +328,8 @@
         }[sort]);
         const shown = list.slice(0, detail.shown);
         $("reviewList").innerHTML = shown.length ? shown.map((r) => `<article class="tc-review">
+                <div class="tc-reviewer"><span class="avatar tc-reviewer-avatar">${esc((r.reviewer_name || "K").charAt(0).toUpperCase())}</span>
+                    <b>${esc(r.reviewer_name || "Khách hàng")}</b></div>
                 <div class="tc-review-top">${starsHtml(r.rating)}<b>${BP.formatRating(r.rating)}</b>
                     <span class="muted small">${esc(r.review_date ? BP.formatDate(r.review_date) : r.review_date_raw || "—")}</span>
                     <span class="spacer"></span>

@@ -36,7 +36,7 @@
     function renderBackups(backups) {
         $("backupTable").innerHTML = backups.length ? backups.map((b) => `
             <tr>
-                <td class="name-cell">${BP.escapeHtml(b.name)}<small>${BP.escapeHtml(b.note || "")}</small></td>
+                <td class="name-cell">${BP.escapeHtml(b.name)}${b.source === "upload" ? ' <span class="badge badge-info">Tải lên</span>' : ""}<small>${BP.escapeHtml(b.note || "")}</small></td>
                 <td class="nowrap">${BP.formatDate(b.created_at, true)}</td>
                 <td>${BP.escapeHtml(b.created_by || "—")}</td>
                 <td class="num">${formatSize(b.size_bytes)}</td>
@@ -95,10 +95,37 @@
         } catch (err) { BP.toast(`Không tải được: ${err.message}`, "bad"); }
     }
 
-    function openConfirm(name) {
+    function upload(file) {
+        if (!file) return;
+        if (!/\.(db|sqlite3?)$/i.test(file.name)) return BP.toast("Chỉ nhận tệp .db / .sqlite / .sqlite3.", "bad");
+        return setBusy($("uploadBtn"), "Đang tải lên...", async () => {
+            $("dropZone").classList.add("is-busy");
+            try {
+                const form = new FormData();
+                form.append("file", file);
+                // Gửi multipart nên không dùng BP.api (luôn gửi JSON).
+                const response = await fetch(`${BP.API_BASE}/api/backups/upload`,
+                    { method: "POST", headers: { Authorization: `Bearer ${BP.getSession().token}` }, body: form });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+                BP.toast(data.message);
+                await load();
+                busy = false;
+                openConfirm(data.backup.name, `Tệp “${file.name}” hợp lệ: ${BP.formatNumber(data.backup.counts.products)} sản phẩm, `
+                    + `${BP.formatNumber(data.backup.counts.price_snapshots)} snapshot giá. Phục hồi ngay?`);
+            } catch (err) {
+                BP.toast(`Không tải lên được: ${err.message}`, "bad");
+            } finally {
+                $("dropZone").classList.remove("is-busy");
+                $("uploadInput").value = "";
+            }
+        });
+    }
+
+    function openConfirm(name, intro = "") {
         pendingRestore = name;
         $("confirmName").textContent = name;
-        $("confirmWarn").innerHTML = `${BP.icon("alert")}<span>Dữ liệu hiện tại sẽ được thay bằng bản sao lưu <b>${BP.escapeHtml(name)}</b>.</span>`;
+        $("confirmWarn").innerHTML = `${BP.icon("alert")}<span>${BP.escapeHtml(intro)} Dữ liệu hiện tại sẽ được thay bằng bản sao lưu <b>${BP.escapeHtml(name)}</b>.</span>`;
         $("confirmModal").hidden = false;
     }
 
@@ -143,16 +170,29 @@
     document.addEventListener("DOMContentLoaded", () => {
         $("reloadBtn").innerHTML = `${BP.icon("refresh")}Tải lại`;
         $("backupBtn").innerHTML = `${BP.icon("database")}Tạo bản sao lưu`;
+        $("uploadBtn").innerHTML = `${BP.icon("upload")}Tải lên bản sao lưu`;
+        $("dropIcon").innerHTML = BP.icon("upload");
         [["icDb", "database"], ["icIntegrity", "check"], ["icBox", "box"], ["icCount", "layers"]].forEach(([id, name]) => { $(id).innerHTML = BP.icon(name); });
 
         if (!BP.isAdmin()) {
             notice("Chức năng sao lưu & phục hồi chỉ dành cho quản trị viên.", "warn");
             $("backupBtn").disabled = true;
+            $("uploadBtn").disabled = true;
+            $("dropZone").hidden = true;
             $("backupTable").innerHTML = `<tr><td colspan="7">${BP.stateHtml("Bạn không có quyền xem trang này.", "error")}</td></tr>`;
             return;
         }
         $("reloadBtn").addEventListener("click", load);
         $("backupBtn").addEventListener("click", makeBackup);
+        const pick = () => { if (!busy) $("uploadInput").click(); };
+        $("uploadBtn").addEventListener("click", pick);
+        $("uploadInput").addEventListener("change", (event) => upload(event.target.files[0]));
+        const drop = $("dropZone");
+        drop.addEventListener("click", pick);
+        drop.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); pick(); } });
+        drop.addEventListener("dragover", (event) => { event.preventDefault(); drop.classList.add("is-over"); });
+        drop.addEventListener("dragleave", () => drop.classList.remove("is-over"));
+        drop.addEventListener("drop", (event) => { event.preventDefault(); drop.classList.remove("is-over"); upload(event.dataTransfer.files[0]); });
         $("backupTable").addEventListener("click", (event) => {
             const btn = event.target.closest("button");
             if (btn?.dataset.download) download(btn.dataset.download);

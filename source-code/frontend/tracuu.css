@@ -104,3 +104,6 @@ body.tc-lock { overflow: hidden; }
     .modal-overlay { padding: 10px; }
     .modal-head, .modal-body { padding-left: 16px; padding-right: 16px; }
 }
+/* người đánh giá (tên đã rút gọn để bảo vệ dữ liệu cá nhân) */
+.tc-reviewer { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+.tc-reviewer-avatar { width: 26px; height: 26px; font-size: 12px; }

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thu thập dữ liệu | BeautyPrice Intelligence</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="thuthap.css">
+    <script src="thuthap.js" defer></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main">
+        <header class="page-head">
+            <div>
+                <h1>Thu thập dữ liệu đa nguồn</h1>
+                <p>Gọi công cụ thu thập để lấy giá mới nhất từ các nhà bán lẻ, chạy ngay hoặc theo lịch tự động. Chỉ dành cho quản trị viên.</p>
+            </div>
+            <div class="page-actions"><button type="button" class="btn btn-outline" id="reloadBtn"></button></div>
+        </header>
+
+        <div id="pageNotice"></div>
+
+        <section class="grid cols-4">
+            <div class="card kpi"><div class="kpi-icon" id="icStatus"></div><div>
+                <div class="kpi-label">Trạng thái</div><div class="kpi-value" id="kpiStatus">—</div><div class="kpi-sub" id="kpiStatusSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon blue" id="icLast"></div><div>
+                <div class="kpi-label">Lần thu thập gần nhất</div><div class="kpi-value" id="kpiLast">—</div><div class="kpi-sub" id="kpiLastSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon orange" id="icSchedule"></div><div>
+                <div class="kpi-label">Lịch tự động</div><div class="kpi-value" id="kpiSchedule">—</div><div class="kpi-sub" id="kpiScheduleSub">—</div></div></div>
+            <div class="card kpi"><div class="kpi-icon green" id="icData"></div><div>
+                <div class="kpi-label">Sản phẩm / snapshot giá</div><div class="kpi-value" id="kpiData">—</div><div class="kpi-sub" id="kpiDataSub">—</div></div></div>
+        </section>
+
+        <section class="grid cols-2 mt">
+            <div class="card">
+                <div class="card-head"><div><h2>Tùy chọn thu thập</h2><p>Dùng cho cả “Chạy ngay” và lịch tự động.</p></div></div>
+                <form id="crawlForm" class="stack">
+                    <div class="field"><span class="field-label">Nguồn dữ liệu</span><div class="tt-checks" id="sourceList"></div></div>
+                    <div class="field"><span class="field-label">Danh mục</span><div class="tt-checks" id="categoryList"></div></div>
+                    <div class="form-grid">
+                        <div class="field"><label for="maxPages">Số trang mỗi danh mục <small class="muted">(0 = toàn bộ)</small></label>
+                            <input class="input" type="number" id="maxPages" min="0" step="1" inputmode="numeric" required></div>
+                        <div class="field"><label for="delay">Giãn cách giữa 2 yêu cầu (giây)</label>
+                            <input class="input" type="number" id="delay" min="1" step="0.5" inputmode="decimal" required></div>
+                        <div class="field"><label for="reviewProducts">Số sản phẩm lấy review <small class="muted">(0 = tất cả)</small></label>
+                            <input class="input" type="number" id="reviewProducts" min="0" step="10" inputmode="numeric" required></div>
+                        <div class="field"><label for="reviewPages" title="Mỗi trang 20 review">Trang review mỗi sản phẩm <small class="muted">(0 = tất cả)</small></label>
+                            <input class="input" type="number" id="reviewPages" min="0" step="1" inputmode="numeric" required></div>
+                    </div>
+                    <div class="tt-presets"><span class="field-label">Mẫu nhanh</span>
+                        <button type="button" class="btn btn-outline btn-sm" data-preset="test">Thử nhanh</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-preset="normal">Thường ngày</button>
+                        <button type="button" class="btn btn-outline btn-sm" data-preset="full">Toàn bộ</button></div>
+                    <label class="tt-check"><input type="checkbox" id="optReviews">
+                        <span><b>Thu thập review Hasaki</b> và bổ sung tên người đánh giá (rút gọn, VD “Nguyễn V. A.”) cho review đã có</span></label>
+                    <details class="tt-advanced">
+                        <summary>Tùy chọn nâng cao</summary>
+                        <label class="tt-check"><input type="checkbox" id="optNewProducts">
+                            <span>Thêm cả <b>sản phẩm mới</b> (mặc định tắt: chỉ cập nhật giá cho sản phẩm đã có, giữ nguyên danh sách sản phẩm gốc)</span></label>
+                        <label class="tt-check"><input type="checkbox" id="optNewReviews">
+                            <span>Thêm cả <b>review mới</b> (mặc định tắt: chỉ bổ sung tên cho review đã có)</span></label>
+                    </details>
+                    <p class="notice notice-info tt-estimate" id="estimate"></p>
+                    <div class="row">
+                        <button type="submit" class="btn btn-primary" id="startBtn"></button>
+                        <button type="button" class="btn btn-danger" id="stopBtn" hidden></button>
+                        <span class="hint" id="formHint"></span>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><div><h2>Tiến trình</h2><p id="jobInfo">Chưa có lần thu thập nào trong phiên này.</p></div><span id="jobBadge"></span></div>
+                <pre class="tt-log" id="jobLog" aria-live="polite">—</pre>
+                <div class="stat-tiles mt" id="jobSummary"></div>
+            </div>
+        </section>
+
+        <section class="card mt">
+            <div class="card-head"><div><h2>Lịch thu thập tự động</h2><p>Server tự chạy công cụ theo chu kỳ, dùng tùy chọn đang chọn ở trên khi bấm Lưu lịch.</p></div></div>
+            <div class="row tt-schedule">
+                <label class="tt-check"><input type="checkbox" id="scheduleEnabled"><span><b>Bật lịch tự động</b></span></label>
+                <div class="field"><label for="scheduleEvery">Chạy mỗi</label>
+                    <div class="tt-every"><input class="input" type="number" id="scheduleEvery" min="1" step="1" inputmode="numeric">
+                        <select class="select" id="scheduleUnit"><option value="1">giờ</option><option value="24">ngày</option></select></div></div>
+                <div class="field"><label for="scheduleFirst">Lần chạy đầu tiên <small class="muted">(để trống = sau 1 chu kỳ)</small></label>
+                    <input class="input" type="datetime-local" id="scheduleFirst"></div>
+                <button type="button" class="btn btn-outline" id="saveSchedule"></button>
+            </div>
+            <p class="hint" id="scheduleOptions"></p>
+            <p class="hint"><span id="scheduleInfo"></span> Lịch chỉ chạy khi server (run.bat / run.sh) đang mở. VD chạy mỗi 1 ngày, lần đầu lúc 02:00 → mỗi ngày 02:00.</p>
+        </section>
+
+        <section class="card card-flush mt">
+            <div class="card-head"><div><h2>Lịch sử thu thập</h2><p>Mỗi lần chạy ghi vào bảng <code>collection_logs</code>; dữ liệu thô lưu ở <code>dataset/crawl/</code>.</p></div></div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>Lần chạy</th><th>Bắt đầu</th><th>Nhà bán lẻ</th><th class="num">Bản ghi</th>
+                        <th class="num">+ Snapshot giá</th><th class="num">+ Sản phẩm mới</th><th class="num">Review bổ sung tên</th></tr></thead>
+                    <tbody id="historyTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card mt">
+            <div class="card-head"><div><h2>Nguyên tắc thu thập</h2></div></div>
+            <ul class="insights">
+                <li><span class="ins-no">1</span><span>Đọc và <b>tuân thủ robots.txt</b> của từng website, giãn cách giữa các yêu cầu (mặc định 1,5 giây, không cho đặt dưới 1 giây), thử lại có giới hạn. Mỗi trang review có 20 đánh giá.</span></li>
+                <li><span class="ins-no">2</span><span>Hasaki, Cocolux, Thế Giới Skin Food lấy qua API JSON công khai mà chính website dùng; Guardian đọc HTML trang danh mục.
+                    <b>Watsons bật chống bot</b> nên chỉ ghi nhận trạng thái “blocked”, không vượt rào.</span></li>
+                <li><span class="ins-no">3</span><span>Mặc định <b>không thêm sản phẩm mới</b>: mỗi lần chạy chỉ thêm snapshot giá cho sản phẩm đã có, nên danh sách sản phẩm gốc giữ nguyên còn lịch sử giá dài thêm.</span></li>
+                <li><span class="ins-no">4</span><span>Tên người đánh giá chỉ lưu <b>dạng rút gọn</b>, không lưu mã tài khoản, để hạn chế dữ liệu cá nhân.</span></li>
+            </ul>
+        </section>
+
+        <footer class="page-foot">BeautyPrice Intelligence · Đồ án Phân tích dữ liệu lớn trong kinh doanh</footer>
+    </main>
+</div>
+</body>
+</html>

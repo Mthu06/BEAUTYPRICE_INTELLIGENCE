@@ -1,0 +1,24 @@
+/* Trang Thu thập dữ liệu */
+.tt-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.tt-checks label {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+    border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-size: 13px;
+}
+.tt-checks label:has(input:checked) { border-color: var(--brand); background: var(--brand-50); color: var(--brand); font-weight: 600; }
+.tt-checks label.tt-disabled { opacity: .65; }
+.tt-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+.tt-check input { margin-top: 3px; }
+.tt-advanced summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+.tt-advanced .tt-check { margin-bottom: 8px; }
+.tt-log {
+    margin: 0; height: 300px; overflow: auto; padding: 12px 14px; border-radius: 12px;
+    background: #12141c; color: #d6d9e6; font: 12px/1.6 ui-monospace, Consolas, "Courier New", monospace; white-space: pre-wrap;
+}
+.tt-retailers { display: flex; flex-wrap: wrap; gap: 4px; }
+.tt-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tt-presets .field-label { margin: 0 4px 0 0; }
+.tt-estimate { margin: 0; }
+.tt-schedule { align-items: flex-end; gap: 16px; }
+.tt-schedule .tt-check { align-self: center; }
+.tt-every { display: flex; gap: 6px; }
+.tt-every .input { width: 90px; }

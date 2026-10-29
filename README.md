@@ -30,7 +30,8 @@ Script tự tạo môi trường ảo, cài Flask, khởi động server và m�
 | Dự đoán giá | Hồi quy giá (so sánh 4 mô hình), phân loại phân khúc giá (ma trận nhầm lẫn), độ quan trọng đặc trưng, bảng dự đoán tập test |
 | Phát hiện bất thường | Isolation Forest, lý do bất thường, tỷ lệ theo nhà bán lẻ, độ nhạy contamination |
 | Báo cáo thống kê | Thống kê tổng quan, **danh sách min – max**, phân bố, đánh giá khách hàng, **chất lượng dữ liệu và quy trình làm sạch**, in/PDF, xuất CSV |
-| Sao lưu & phục hồi (Admin) | Sao lưu CSDL bằng SQLite Online Backup API; phục hồi có **kiểm tra lại** toàn vẹn, khóa ngoại và số dòng 13 bảng; tự tạo bản an toàn trước khi phục hồi; tải bản sao lưu về máy |
+| Thu thập dữ liệu (Admin) | Gọi công cụ thu thập đa nguồn từ website: chọn nguồn, danh mục, **tự nhập lượng dữ liệu** (số trang, số sản phẩm lấy review, số trang review, giãn cách), mẫu nhanh, ước tính thời gian; chạy nền có nhật ký và nút Dừng; **lịch tự động** (chu kỳ giờ/ngày tùy chọn, giờ chạy lần đầu); lịch sử các lần chạy |
+| Sao lưu & phục hồi (Admin) | Sao lưu CSDL bằng SQLite Online Backup API; phục hồi có **kiểm tra lại** toàn vẹn, khóa ngoại và số dòng 13 bảng; tự tạo bản an toàn trước khi phục hồi; tải bản sao lưu về máy; **tải lên tệp .db** (từ máy khác) để phục hồi, có kiểm tra định dạng, cấu trúc bảng, view/trigger lạ, tài khoản quản trị |
 
 ## Quy trình dữ liệu
 
@@ -49,17 +50,24 @@ cd source-code/crawler
 python crawl.py --list                     # xem nguồn và danh mục hỗ trợ
 python crawl.py                            # mọi nguồn, 6 danh mục, tối đa 3 trang/danh mục, nạp thẳng vào CSDL
 python crawl.py --max-pages 0              # thu thập toàn bộ (không giới hạn trang)
+python crawl.py --reviews --review-products 50 --review-pages 2   # kèm review Hasaki, bổ sung tên người đánh giá
+python crawl.py --delay 2                  # giãn cách 2 giây giữa 2 yêu cầu tới cùng website
+python crawl.py --add-new-products --add-new-reviews              # cho phép thêm sản phẩm / review mới (mặc định tắt)
 python crawl.py --sources hasaki,guardian --categories serum --dry-run   # chạy thử, không ghi CSDL
 ```
+
+Hoặc dùng trang **Thu thập dữ liệu** trên website (tài khoản admin): cùng các tùy chọn trên, chạy nền, xem tiến trình và đặt lịch tự động.
 
 - Chỉ dùng thư viện chuẩn của Python, không cần cài thêm.
 - Nguồn hỗ trợ:
   - **Hasaki**, **Cocolux**, **Thế Giới Skin Food**: lấy qua API JSON công khai mà chính website dùng.
   - **Guardian**: phân tích HTML trang danh mục.
   - **Watsons**: website bật chống bot (Akamai). Công cụ chỉ ghi nhận trạng thái `blocked` và **không vượt rào**.
-- Công cụ tuân thủ `robots.txt`, giãn cách 1,5 giây giữa các yêu cầu, và lưu dữ liệu thô (nén `.gz`) để truy vết.
+- Công cụ tuân thủ `robots.txt`, giãn cách giữa các yêu cầu (mặc định 1,5 giây, tối thiểu 1 giây), và lưu dữ liệu thô (nén `.gz`) để truy vết.
 - Mỗi lần chạy sinh **snapshot giá mới**. Sản phẩm đã có được nhận ra nhờ dùng cùng công thức mã sản phẩm với dữ liệu gốc, nên lịch sử giá được nối tiếp.
-- `build_database.py` tự nạp lại mọi lần thu thập trong `dataset/crawl/`, nên dựng lại CSDL không bị mất dữ liệu mới.
+- Mặc định **không thêm sản phẩm mới**: danh sách sản phẩm giữ nguyên như dữ liệu gốc (5.657 sản phẩm), chỉ lịch sử giá dài thêm.
+  Review chỉ được bổ sung tên người đánh giá (dạng rút gọn, VD “Nguyễn V. A.”).
+- `build_database.py` mặc định chỉ dựng từ `dataset/raw/`; thêm `--with-crawl` để nạp lại cả các lần thu thập trong `dataset/crawl/`.
 
 ```bash
 cd source-code/pipeline

@@ -18,7 +18,7 @@ import unicodedata
 import uuid
 from collections import Counter
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
 from urllib.parse import urlparse
@@ -37,6 +37,7 @@ for stream in (sys.stdout, sys.stderr):
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = ROOT / "source-code" / "frontend"
 PIPELINE_DIR = ROOT / "source-code" / "pipeline"
+CRAWLER_DIR = ROOT / "source-code" / "crawler"
 DB_PATH = Path(os.environ.get("BEAUTY_DB", ROOT / "dataset" / "beautyprice.db"))
 BACKUP_DIR = Path(os.environ.get("BEAUTY_BACKUP_DIR", DB_PATH.parent / "backups"))
 
@@ -63,6 +64,17 @@ AUTH_LOCK = threading.Lock()
 
 # ---------------------------------------------------------------- CSDL
 
+# Cột/bảng thêm sau: CSDL cũ (hoặc bản sao lưu cũ) được bổ sung tự động, nên không bắt buộc khi tải lên.
+MIGRATED_COLUMNS = {"reviews": {"reviewer_name"}}
+
+
+def migrate(conn):
+    """CSDL cũ: bổ sung bảng/cột mới (CSDL dựng mới đã có sẵn nên không ghi gì)."""
+    conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+    if "reviewer_name" not in {r[1] for r in conn.execute("PRAGMA table_info(reviews)")}:
+        conn.execute("ALTER TABLE reviews ADD COLUMN reviewer_name TEXT")
+
+
 def ensure_database():
     """Dựng CSDL từ dataset/raw nếu chưa có; tạo tài khoản mặc định nếu bảng users trống."""
     if not DB_PATH.exists():
@@ -73,6 +85,7 @@ def ensure_database():
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         build_database.build(DB_PATH)
     with sqlite3.connect(DB_PATH) as conn:
+        migrate(conn)
         if not conn.execute("SELECT 1 FROM users LIMIT 1").fetchone():
             conn.executemany("INSERT INTO users(username, password_hash, role) VALUES (?,?,?)", [
                 ("admin", generate_password_hash(os.environ.get("BEAUTY_ADMIN_PASSWORD", "Admin@123"), method="pbkdf2:sha256"), "Admin"),
@@ -454,7 +467,7 @@ def price_trend():
 @require_auth()
 def get_reviews():
     reviews = rows("""SELECT review_key, product_id, source, source_product_id, review_id, product_name, category, rating,
-                             review_text, review_date, review_date_raw, is_bought, has_images, source_url FROM reviews""")
+                             review_text, review_date, review_date_raw, is_bought, has_images, source_url, reviewer_name FROM reviews""")
     for r in reviews:
         r["is_bought"] = None if r["is_bought"] is None else bool(r["is_bought"])
         r["has_images"] = None if r["has_images"] is None else bool(r["has_images"])
@@ -473,12 +486,196 @@ def data_quality():
                                  FROM collection_logs c LEFT JOIN retailers r ON r.retailer_id = c.retailer_id GROUP BY c.retailer_id"""))
 
 
+# ---------------------------------------------------------------- thu thập dữ liệu (gọi crawler từ website + lịch tự động)
+
+sys.path.insert(0, str(CRAWLER_DIR))
+import crawl  # noqa: E402
+
+crawl.DB_PATH = DB_PATH
+DEFAULT_CRAWL_OPTIONS = {"sources": ["hasaki", "cocolux", "tgsf", "guardian", "watsons"], "categories": list(crawl.CATEGORIES),
+                         "max_pages": 3, "reviews": False, "review_pages": 2, "review_products": 50, "delay": 1.5,
+                         "add_new_products": False, "add_new_reviews": False}
+# Giới hạn từng tùy chọn số (0 = không giới hạn); giãn cách tối thiểu 1 giây để lịch sự với website.
+CRAWL_LIMITS = {"max_pages": (int, 0, 200), "review_pages": (int, 0, 100), "review_products": (int, 0, 5000), "delay": (float, 1, 30)}
+SOURCE_LABELS = {"hasaki": "Hasaki", "cocolux": "Cocolux", "tgsf": "Thế Giới Skin Food", "guardian": "Guardian", "watsons": "Watsons"}
+
+
+def clean_crawl_options(data):
+    """Kiểm tra tùy chọn gửi lên; trả về (tùy chọn hợp lệ, lỗi)."""
+    opts = {**DEFAULT_CRAWL_OPTIONS, **{k: v for k, v in (data or {}).items() if k in DEFAULT_CRAWL_OPTIONS}}
+    if not isinstance(opts["sources"], list) or not set(opts["sources"]) <= set(crawl.SOURCES):
+        return None, "Nguồn không hợp lệ!"
+    if not isinstance(opts["categories"], list) or not set(opts["categories"]) <= set(crawl.CATEGORIES):
+        return None, "Danh mục không hợp lệ!"
+    if not opts["sources"] or (not opts["categories"] and not opts["reviews"]):
+        return None, "Chọn ít nhất 1 nguồn và 1 danh mục (hoặc bật thu thập review)!"
+    for key, (cast, low, high) in CRAWL_LIMITS.items():
+        try:
+            opts[key] = cast(opts[key])
+        except (TypeError, ValueError, OverflowError):
+            return None, f"Giá trị {key} không hợp lệ!"
+        if not low <= opts[key] <= high:
+            return None, f"{key} phải trong khoảng {low}–{high}!"
+    for key in ("reviews", "add_new_products", "add_new_reviews"):
+        opts[key] = bool(opts[key])
+    return opts, None
+
+
+def get_setting(key, default):
+    with closing(sqlite3.connect(DB_PATH)) as conn:
+        row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (key,)).fetchone()
+    return json.loads(row[0]) if row else default
+
+
+def set_setting(key, value):
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
+        conn.execute("INSERT INTO app_settings VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                     (key, json.dumps(value, ensure_ascii=False)))
+
+
+class CrawlJob:
+    """Một lần thu thập chạy nền trong server; trạng thái + nhật ký để trang web theo dõi."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.stop = threading.Event()
+        self.state = {"running": False}
+        self.lines = []
+
+    def log(self, message):
+        with self.lock:
+            self.lines.append(f"{datetime.now():%H:%M:%S}  {message}")
+            del self.lines[:-400]
+
+    def start(self, options, triggered_by):
+        with self.lock:
+            if self.state.get("running"):
+                return False
+            self.stop.clear()
+            self.lines = []
+            self.state = {"running": True, "triggered_by": triggered_by, "options": options,
+                          "started_at": datetime.now().isoformat(timespec="seconds")}
+        threading.Thread(target=self._run, args=(options,), daemon=True).start()
+        return True
+
+    def _run(self, options):
+        summary, error = None, None
+        try:
+            summary = crawl.run(log=self.log, stop=self.stop, **options)
+        except Exception as exc:  # noqa: BLE001 - báo lỗi lên trang web
+            error = str(exc)
+            self.log(f"Lỗi: {exc}")
+        with self.lock:
+            self.state.update(running=False, finished_at=datetime.now().isoformat(timespec="seconds"), summary=summary, error=error)
+
+    def snapshot(self):
+        with self.lock:
+            return {**self.state, "log": list(self.lines)}
+
+
+crawl_job = CrawlJob()
+
+
+def crawl_history(limit=15):
+    """Các lần thu thập gần đây, gom theo mã lần chạy (crawl_YYYYmmddTHHMMSS)."""
+    runs = {}
+    for r in rows("""SELECT substr(run_id, 1, 21) AS run, retailer_id, status, records_found, started_at, finished_at
+                     FROM collection_logs WHERE run_type = 'crawl' ORDER BY started_at"""):
+        run = runs.setdefault(r["run"], {"run_id": r["run"], "started_at": r["started_at"], "finished_at": r["finished_at"],
+                                         "retailers": {}, "records": 0})
+        status = run["retailers"].get(r["retailer_id"])
+        run["retailers"][r["retailer_id"]] = r["status"] if status in (None, r["status"]) else "partial"
+        run["records"] += r["records_found"] or 0
+        run["finished_at"] = max(run["finished_at"] or "", r["finished_at"] or "")
+    for step in rows("SELECT step, rows_out, rows_affected FROM etl_log WHERE step LIKE 'Nạp lần thu thập crawl_%'"):
+        run_id = step["step"].split()[4]
+        if run_id in runs:
+            key = ("reviews_added", "reviews_named") if "(review)" in step["step"] else ("new_snapshots", "new_products")
+            runs[run_id].update({key[0]: step["rows_out"], key[1]: step["rows_affected"]})
+    return sorted(runs.values(), key=lambda r: r["run_id"], reverse=True)[:limit]
+
+
+@app.get("/api/crawl")
+@require_auth(["Admin"])
+def crawl_status():
+    sources = [{"key": k, "label": SOURCE_LABELS.get(k, k), "retailer_id": cls.retailer_id,
+                "supported": not issubclass(cls, crawl.AccessCheckOnly)} for k, cls in crawl.SOURCES.items()]
+    default_schedule = {"enabled": False, "interval_hours": 24, "options": DEFAULT_CRAWL_OPTIONS}
+    return ok(job=crawl_job.snapshot(), schedule=get_setting("crawl_schedule", default_schedule), sources=sources,
+              categories=[{"key": k, "label": v} for k, v in crawl.CATEGORIES.items()],
+              defaults=DEFAULT_CRAWL_OPTIONS, limits={k: [low, high] for k, (_, low, high) in CRAWL_LIMITS.items()},
+              history=crawl_history())
+
+
+@app.post("/api/crawl/start")
+@require_auth(["Admin"])
+def crawl_start():
+    options, error = clean_crawl_options(json_body())
+    if error:
+        return fail(error)
+    if not crawl_job.start(options, f"Thủ công ({g.current_user['username']})"):
+        return fail("Đang có một lần thu thập chạy, vui lòng chờ hoặc dừng trước.", 409)
+    return ok(message="Đã bắt đầu thu thập dữ liệu.", job=crawl_job.snapshot())
+
+
+@app.post("/api/crawl/stop")
+@require_auth(["Admin"])
+def crawl_stop():
+    if not crawl_job.snapshot().get("running"):
+        return fail("Không có lần thu thập nào đang chạy.", 409)
+    crawl_job.stop.set()
+    return ok(message="Đã gửi yêu cầu dừng; công cụ sẽ dừng sau trang đang tải.")
+
+
+@app.put("/api/crawl/schedule")
+@require_auth(["Admin"])
+def crawl_schedule():
+    data = json_body()
+    options, error = clean_crawl_options(data.get("options"))
+    if error:
+        return fail(error)
+    try:
+        hours = float(data.get("interval_hours", 24))
+        first = datetime.fromisoformat(data["first_run_at"]) if data.get("first_run_at") else None
+    except (TypeError, ValueError):
+        return fail("Chu kỳ hoặc thời điểm chạy đầu tiên không hợp lệ!")
+    if not 1 <= hours <= 24 * 30:
+        return fail("Chu kỳ phải từ 1 giờ đến 30 ngày!")
+    if first and first.tzinfo:
+        first = first.astimezone().replace(tzinfo=None)
+    if first and not datetime.now() < first <= datetime.now() + timedelta(days=30):
+        return fail("Thời điểm chạy đầu tiên phải trong vòng 30 ngày tới!")
+    enabled = bool(data.get("enabled"))
+    next_run = (first or datetime.now() + timedelta(hours=hours)).isoformat(timespec="seconds") if enabled else None
+    schedule = {"enabled": enabled, "interval_hours": hours, "options": options,
+                "updated_by": g.current_user["username"], "next_run_at": next_run}
+    set_setting("crawl_schedule", schedule)
+    return ok(message="Đã bật lịch thu thập tự động." if enabled else "Đã tắt lịch thu thập tự động.", schedule=schedule)
+
+
+def scheduler_loop():
+    """Kiểm tra lịch mỗi 30 giây; đến giờ thì tự chạy một lần thu thập."""
+    while True:
+        time.sleep(30)
+        try:
+            schedule = get_setting("crawl_schedule", {})
+            next_run = schedule.get("next_run_at")
+            due = schedule.get("enabled") and next_run and datetime.fromisoformat(next_run) <= datetime.now()
+            if due and crawl_job.start(schedule["options"], "Lịch tự động"):
+                schedule["last_run_at"] = datetime.now().isoformat(timespec="seconds")
+                schedule["next_run_at"] = datetime.fromtimestamp(time.time() + schedule["interval_hours"] * 3600).isoformat(timespec="seconds")
+                set_setting("crawl_schedule", schedule)
+        except Exception as exc:  # noqa: BLE001 - lịch không được làm sập server
+            print("Lỗi lịch thu thập:", exc)
+
+
 # ---------------------------------------------------------------- sao lưu & phục hồi
 
 BACKUP_NAME = re.compile(r"^beautyprice_\d{8}T\d{6}(_[a-z-]+)?\.db$")
 CHECK_TABLES = ["retailers", "categories", "products", "product_categories", "price_snapshots", "reviews", "users",
                 "collection_logs", "etl_log", "ml_runs", "ml_price_predictions", "ml_clusters", "ml_anomalies"]
 BACKUP_LOCK = threading.Lock()
+UPLOAD_LIMIT = int(os.environ.get("BEAUTY_UPLOAD_MB", "500")) * 1024 * 1024
 
 
 def inspect_db(path):
@@ -498,15 +695,25 @@ def sha256_of(path):
     return digest.hexdigest()
 
 
+def new_backup_path(tag=""):
+    """Tên theo thời điểm; nếu trùng (2 thao tác trong cùng 1 giây) thì lùi sang giây kế tiếp."""
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    moment = datetime.now()
+    while True:
+        path = BACKUP_DIR / f"beautyprice_{moment:%Y%m%dT%H%M%S}{'_' + tag if tag else ''}.db"
+        if not path.exists():
+            return path
+        moment += timedelta(seconds=1)
+
+
 def create_backup(note="", tag=""):
     """Sao lưu bằng SQLite Online Backup API (an toàn khi CSDL đang được dùng), rồi kiểm tra ngay bản sao."""
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    name = f"beautyprice_{datetime.now():%Y%m%dT%H%M%S}{'_' + tag if tag else ''}.db"
-    path = BACKUP_DIR / name
+    path = new_backup_path(tag)
+    name = path.name
     with closing(sqlite3.connect(DB_PATH)) as source, closing(sqlite3.connect(path)) as target:
         source.backup(target)
     info = inspect_db(path)
-    meta = {"name": name, "created_at": datetime.now().isoformat(timespec="seconds"), "created_by": g.current_user["username"],
+    meta = {"name": name, "source": "server", "created_at": datetime.now().isoformat(timespec="seconds"), "created_by": g.current_user["username"],
             "note": text(note)[:200], "size_bytes": path.stat().st_size, "sha256": sha256_of(path), **info}
     path.with_suffix(".json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     if info["integrity"] != "ok":
@@ -537,6 +744,75 @@ def make_backup():
     return ok(message=f"Đã sao lưu và kiểm tra bản sao: {meta['name']}", backup=meta), 201
 
 
+def schema_of(conn):
+    """{bảng: {cột}} và tập (loại, tên) của view/trigger trong một CSDL."""
+    objects = conn.execute("SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").fetchall()
+    tables = {name: {r[1] for r in conn.execute(f'PRAGMA table_info("{name}")')} for kind, name in objects if kind == "table"}
+    return tables, {(kind, name) for kind, name in objects if kind in ("view", "trigger")}
+
+
+def check_uploaded_db(path):
+    """Kiểm tra tệp tải lên trước khi nhận làm bản sao lưu. Trả về (thông tin kiểm tra, lỗi)."""
+    with open(path, "rb") as file:
+        if file.read(16) != b"SQLite format 3\x00":
+            return None, "Tệp không phải CSDL SQLite!"
+    try:
+        with closing(sqlite3.connect(DB_PATH)) as conn:
+            expected_tables, expected_objects = schema_of(conn)
+        with closing(sqlite3.connect(f"file:{Path(path).as_posix()}?mode=ro", uri=True)) as conn:
+            tables, objects = schema_of(conn)
+            missing = [t for t in CHECK_TABLES if t not in tables]
+            if missing:
+                return None, f"Không phải CSDL của hệ thống: thiếu bảng {', '.join(missing)}."
+            for table in CHECK_TABLES:
+                lacking = expected_tables[table] - MIGRATED_COLUMNS.get(table, set()) - tables[table]
+                if lacking:
+                    return None, f"Cấu trúc bảng {table} không khớp: thiếu cột {', '.join(sorted(lacking))}."
+            # view/trigger lạ có thể làm sai kết quả hoặc ghi dữ liệu ngoài ý muốn khi website truy vấn -> từ chối
+            strange = sorted(name for _, name in objects - expected_objects)
+            if strange:
+                return None, f"Tệp chứa view/trigger không có trong hệ thống: {', '.join(strange)}."
+            if not conn.execute("SELECT 1 FROM users WHERE role = 'Admin' LIMIT 1").fetchone():
+                return None, "Tệp không có tài khoản quản trị viên nào; phục hồi sẽ làm mất quyền quản trị."
+        info = inspect_db(path)
+    except sqlite3.DatabaseError as exc:
+        return None, f"Tệp CSDL bị hỏng hoặc không đọc được ({exc})."
+    if info["integrity"] != "ok" or info["foreign_key_errors"]:
+        return None, f"Tệp lỗi toàn vẹn ({info['integrity']}, {info['foreign_key_errors']} lỗi khóa ngoại)."
+    return info, None
+
+
+@app.post("/api/backups/upload")
+@require_auth(["Admin"])
+def upload_backup():
+    """Nhận tệp .db tải lên (bản đã tải về trước đó hoặc từ máy khác), kiểm tra rồi thêm vào danh sách sao lưu.
+    Không ghi đè CSDL ngay: phục hồi vẫn đi qua quy trình thường (tự sao lưu trước + kiểm tra sau)."""
+    request.max_content_length = UPLOAD_LIMIT
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return fail("Chưa chọn tệp sao lưu!")
+    if Path(file.filename).suffix.lower() not in (".db", ".sqlite", ".sqlite3"):
+        return fail("Chỉ nhận tệp .db / .sqlite / .sqlite3!")
+    with BACKUP_LOCK:
+        path = new_backup_path("tai-len")
+        temp = path.with_suffix(".uploading")
+        try:
+            file.save(temp)
+            info, error = check_uploaded_db(temp)
+            if error:
+                return fail(error, 422)
+            temp.replace(path)
+        finally:
+            temp.unlink(missing_ok=True)
+        original = Path(file.filename).name[:120]
+        meta = {"name": path.name, "source": "upload", "original_name": original,
+                "created_at": datetime.now().isoformat(timespec="seconds"), "created_by": g.current_user["username"],
+                "note": text(request.form.get("note") or f"Tải lên từ tệp {original}")[:200],
+                "size_bytes": path.stat().st_size, "sha256": sha256_of(path), **info}
+        path.with_suffix(".json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    return ok(message=f"Đã tải lên và kiểm tra tệp: {path.name}", backup=meta), 201
+
+
 @app.post("/api/backups/<name>/restore")
 @require_auth(["Admin"])
 def restore_backup(name):
@@ -554,6 +830,8 @@ def restore_backup(name):
         safety = create_backup(f"Tự động trước khi phục hồi {name}", tag="truoc-phuc-hoi")
         with closing(sqlite3.connect(path)) as source, closing(sqlite3.connect(DB_PATH)) as target:
             source.backup(target)
+        with sqlite3.connect(DB_PATH) as conn:
+            migrate(conn)  # bản sao lưu cũ: bổ sung cột/bảng mới để website chạy được
         restored = inspect_db(DB_PATH)
     mismatched = {t: {"backup": source_info["counts"][t], "restored": restored["counts"][t]}
                   for t in CHECK_TABLES if source_info["counts"][t] != restored["counts"][t]}
@@ -718,6 +996,8 @@ def server_error(error):
 
 
 ensure_database()
+if os.environ.get("BEAUTY_SCHEDULER", "1") == "1":
+    threading.Thread(target=scheduler_loop, daemon=True, name="crawl-scheduler").start()
 
 if __name__ == "__main__":
     host = os.environ.get("BEAUTY_HOST", "127.0.0.1")
