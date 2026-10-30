@@ -16,6 +16,7 @@ Chỉ cần cài **Python 3.9+**. Không cần MySQL hay bất kỳ server CSDL 
 | Tắt server | `stop.bat` / `./stop.sh` (chỉ tắt tiến trình Python đang chạy ở cổng của dự án) |
 | Khởi động lại (sau khi cập nhật code) | `restart.bat` / `./restart.sh` |
 | Khôi phục dữ liệu gốc | `reset.bat` / `./reset.sh` (lấy lại CSDL gốc từ git, kèm kết quả mô hình; không có git thì dựng lại từ `dataset/raw`) |
+| Chia sẻ cho máy khác trong mạng LAN | `chia-se-lan.bat` / `./chia-se-lan.sh` (một máy làm server, các máy khác chỉ mở trình duyệt) |
 
 Script tự tạo môi trường ảo, cài Flask, khởi động server và mở **http://127.0.0.1:5000/**. Nếu chưa có `dataset/beautyprice.db`, backend tự dựng CSDL từ `dataset/raw/`.
 
@@ -91,6 +92,7 @@ Lưu ý: dựng lại CSDL sẽ xóa các thay đổi admin đã nhập qua webs
 ```
 ├─ readme.txt                 thông tin đề tài & nhóm (theo mẫu nộp bài)
 ├─ cai-dat.bat / cai-dat.sh   cài đặt trên máy mới (Python + thư viện)
+├─ chia-se-lan.*              một máy làm server cho cả nhóm trong mạng LAN
 ├─ run.bat / run.sh           chạy 1 lần bấm (stop: tắt · restart: khởi động lại · reset: khôi phục dữ liệu gốc)
 ├─ source-code/
 │  ├─ backend/                app.py (Flask + SQLite), requirements.txt

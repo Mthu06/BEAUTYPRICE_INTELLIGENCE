@@ -54,6 +54,8 @@ Cách chạy
 - Tắt server:         stop.bat    /  ./stop.sh
 - Khởi động lại:      restart.bat /  ./restart.sh
 - Khôi phục dữ liệu gốc: reset.bat /  ./reset.sh
+- Chia sẻ trong mạng LAN: chia-se-lan.bat / ./chia-se-lan.sh
+  (một máy làm server, các máy khác mở http://<IP máy đó>:5000/ — dùng chung một CSDL)
 - Thu thập mới:       cd source-code/crawler  && python crawl.py   (xem: python crawl.py --help)
 - Dựng lại CSDL:      cd source-code/pipeline && python build_database.py --force
 - Kiểm tra CSDL:      cd source-code/pipeline && python verify_database.py
